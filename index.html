@@ -327,7 +327,7 @@
       <span><b>Project:</b> AI Restaurant Finder for Team Dinner</span>
       <span><b>วันที่ทำ:</b> 6 มิถุนายน 2026</span>
       <span><b>ผู้เข้าสอบ:</b> สุวนันท์ บุญแตง</span>
-      <span id="dataModeBadge" class="dmbadge">Data mode: Embedded fallback</span>
+      <span id="dataModeBadge" class="dmbadge">Data source: Embedded report dataset</span>
     </div>
   </div>
 </header>
@@ -512,7 +512,7 @@
     <div class="step"><div class="si">4</div><h4>AI Cleaning &amp; Enrichment</h4><p>Claude/ChatGPT เติมราคา เวลา group-fit + ยืนยันแหล่งที่ 2</p></div>
     <div class="step"><div class="si">5</div><h4>Scoring Model</h4><p>ให้คะแนน 100 คะแนน 6 มิติ จัดอันดับ</p></div>
     <div class="step live"><div class="si">6</div><h4>n8n Automation</h4><p><b>Connected production webhook:</b> HTML Ask Box → n8n Webhook → Fetch Top 10 CSV → Fetch Top 3 CSV → Code JS → Respond to Webhook</p></div>
-    <div class="step live"><div class="si">7</div><h4>n8n Live Data API</h4><p><b>Live data sync:</b> HTML เรียก n8n Production Webhook เพื่อโหลด restaurantsData ล่าสุดจาก Google Sheets CSV แล้ว render Top 3, Top 10, Area Filter และ Restaurant Comparison</p></div>
+    <div class="step live"><div class="si">7</div><h4>n8n Live Data API</h4><p><b>Live data sync:</b> HTML เรียก n8n Production Webhook เพื่อโหลด restaurantsData, top10 และ top3 จาก Google Sheets CSV แล้ว render Top 3, Top 10, Area Filter และ Restaurant Comparison</p></div>
     <div class="step"><div class="si">8</div><h4>HTML Report</h4><p>รายงานหน้านี้ — ตัดสินใจได้จริง ตรวจย้อนกลับได้</p></div>
   </div>
 </section>
@@ -525,7 +525,7 @@
     <div class="tool"><span class="pill">Scraping</span><h4>Apify</h4><p>เก็บข้อมูลร้านจาก Google Maps (Google Places crawler) — ชื่อ เรตติ้ง จำนวนรีวิว พิกัด</p></div>
     <div class="tool"><span class="pill">Database</span><h4>Google Sheets</h4><p>ฐานข้อมูลหลัก: Raw Data, Clean Data, Scoring, Top 10 Ranking, Top 3 Recommendation</p></div>
     <div class="tool"><span class="pill">AI</span><h4>Claude / ChatGPT</h4><p>ช่วย clean data, ทำ scoring, สรุป insight และเขียน recommendation</p></div>
-    <div class="tool"><span class="pill green">Automation · Live</span><h4>n8n</h4><p>n8n ใช้เป็น <b>live automation</b> สำหรับ Dataset Ask Box โดยรับคำถามจากหน้าเว็บผ่าน Production Webhook แล้วดึงข้อมูล Top 10 Ranking และ Top 3 Recommendation จาก Google Sheets CSV เพื่อตอบกลับจาก dataset</p></div>
+    <div class="tool"><span class="pill green">Automation · Live</span><h4>n8n</h4><p>n8n ใช้เป็น <b>live automation 2 ส่วน</b>: 1) <b>Dataset Ask Box</b> รับคำถามจากหน้าเว็บผ่าน Production Webhook แล้วตอบจาก Google Sheets CSV 2) <b>Live Data API</b> ดึง Scoring, Top 10 Ranking และ Top 3 Recommendation จาก Google Sheets CSV เพื่อ sync ข้อมูลเข้า HTML report</p></div>
     <div class="tool"><span class="pill">Frontend</span><h4>HTML / CSS / JS</h4><p>Final report หน้าเดียว เปิดใน browser ได้จริง responsive</p></div>
   </div>
 </section>
@@ -575,16 +575,19 @@
     <div class="evcard">
       <div class="top"><h4>🔄 n8n Live Data API</h4><span class="sbadge badge-ok">● Connected</span></div>
       <p><b>Status:</b> Production URL Verified</p>
-      <p class="wf"><b>Workflow:</b> Webhook → Fetch Scoring CSV → Parse CSV to Report JSON → Respond to Webhook</p>
+      <p class="wf"><b>Workflow:</b> Webhook → Fetch Scoring CSV → Fetch Top 10 CSV → Fetch Top 3 CSV → Parse CSV to Report JSON → Respond to Webhook</p>
       <p class="files">Proof:
-        <a href="n8n_live_data_api_json_success.png" target="_blank">n8n_live_data_api_json_success.png</a>
+        <a href="n8n_live_data_api_3csv_workflow_success.png" target="_blank">n8n_live_data_api_3csv_workflow_success.png</a>
       </p>
     </div>
 
     <div class="evcard">
       <div class="top"><h4>📝 Prompt History</h4><span class="sbadge badge-done">Completed</span></div>
       <p>บันทึก prompt ทั้งหมดที่ใช้ในการ clean / score / recommend / HTML / n8n / QA</p>
-      <p class="files">File: <a href="prompt_history_restaurant.md" target="_blank" rel="noopener">prompt_history_restaurant.md</a></p>
+      <p class="files">Files:
+        <a href="claudecode_prompt_history.md" target="_blank" rel="noopener">claudecode_prompt_history.md</a> ·
+        <a href="ChatGPT%20Prompt%20History.md" target="_blank" rel="noopener">ChatGPT Prompt History.md</a>
+      </p>
     </div>
 
   </div>
@@ -595,11 +598,12 @@
   <h2><span class="n">11</span> Notes / Limitations</h2>
   <div class="notes">
     <ul>
-      <li>ข้อมูลบางส่วน เช่น <b>ราคา เวลาเปิด-ปิด และการรองรับโต๊ะ 8–12 คน</b> อาจต้องยืนยันกับร้านก่อนจองจริง</li>
-      <li>ฟิลด์ที่ข้อมูลไม่ชัดเจนจะแสดงเป็น <span class="needv">Need verification</span></li>
-      <li>Final decision ควรตรวจสอบ <b>เวลาเปิด-ปิด ราคา และการจองโต๊ะ</b> กับร้านอีกครั้งก่อนยืนยัน</li>
-      <li>คะแนนคำนวณด้วย Scoring Model 100 คะแนนที่นิยามไว้ จากชุดข้อมูลจริงที่ clean แล้ว (Apify → Google Sheets) ด้วยเกณฑ์เดียวกันทุกร้าน</li>
-      <li>Dataset Ask Box ทำงานแบบ <b>live</b> ผ่าน n8n Production Webhook — การตอบขึ้นกับข้อมูลใน Google Sheets CSV</li>
+      <li>ข้อมูลบางส่วน เช่น <b>ราคา เวลาเปิด–ปิด การเดินทาง และการรองรับโต๊ะ 8–12 คน</b> อาจต้องยืนยันกับร้านก่อนจองจริง</li>
+      <li>Final decision ควรตรวจสอบ <b>เวลาเปิด–ปิด ราคา และการจองโต๊ะ</b> กับร้านอีกครั้งก่อนยืนยัน</li>
+      <li>คะแนนคำนวณด้วย <b>Scoring Model 100 คะแนน</b> จากชุดข้อมูลที่ clean แล้ว โดยใช้เกณฑ์เดียวกันทุกร้าน</li>
+      <li><b>n8n Live Data API</b> ใช้สำหรับดึงข้อมูลจาก Google Sheets CSV 3 ชุด ได้แก่ Scoring, Top 10 Ranking และ Top 3 Recommendation เข้าสู่ HTML report</li>
+      <li>HTML report ใช้ <b>live data จาก n8n</b> เป็นหลัก และใช้ <b>embedded clean dataset</b> เป็น fallback สำหรับรายละเอียดบางช่องที่ไม่ได้อยู่ใน CSV live</li>
+      <li><b>Dataset Ask Box</b> ทำงานผ่าน n8n Production Webhook โดยตอบจากข้อมูลใน Google Sheets CSV เท่านั้น ไม่ใช้ความรู้ทั่วไป</li>
     </ul>
   </div>
 </section>
@@ -1610,26 +1614,29 @@ let restaurantsData = [
     "rank": 25
   }
 ];
+/* original embedded Clean Data (25 rows) — kept untouched as a merge fallback
+   so live data from n8n never wipes address/opening_hours/travel_note/etc. */
+const EMBEDDED_DATA = restaurantsData.slice();
 let refreshDataset;  /* assigned inside the dataset IIFE; re-runs dropdowns + table */
 
 /* n8n Production Webhook — live connection to the Dataset Ask Box. */
 const N8N_ASK_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/restaurant-ask-box";
 
 /* ---------- helpers ---------- */
-const NV = '<span class="needv">⚠️ Need verification</span>';
+const NV = '<span class="needv">ควรตรวจสอบเพิ่มเติม</span>';
 const val = v => (v===null||v===undefined||String(v).trim()==='') ? NV : v;
 const fmt = n => Number(n).toLocaleString();
 const shortNote = n => (n||'').split('(')[0].trim();
 /* extract the baht range inside parentheses from price_range, drop the $ symbols */
 function formatPriceTH(pr){
-  if(pr===null || pr===undefined || String(pr).trim()==='') return 'ราคา: Need verification';
+  if(pr===null || pr===undefined || String(pr).trim()==='') return 'ราคา: ควรตรวจสอบเพิ่มเติม';
   const m = String(pr).match(/\(([^)]*)\)/);
   const inside = m ? m[1].trim() : String(pr).replace(/\$/g,'').trim();
   return 'ราคา '+inside;
 }
 /* baht range only (no "ราคา" prefix) — for the Top 10 table Price column */
 function priceTH(pr){
-  if(pr===null || pr===undefined || String(pr).trim()==='') return 'Need verification';
+  if(pr===null || pr===undefined || String(pr).trim()==='') return 'ควรตรวจสอบเพิ่มเติม';
   const m = String(pr).match(/\(([^)]*)\)/);
   return m ? m[1].trim() : String(pr).replace(/\$/g,'').trim();
 }
@@ -1640,6 +1647,119 @@ function tradeoffText(r){
   if(Array.isArray(r.cons) && r.cons.length) return r.cons.join(' · ');
   if(r.final_note && String(r.final_note).trim() !== '') return r.final_note;
   return TRADEOFF_FALLBACK;
+}
+
+/* ----- Comparison column builders -----
+   Use a real value if present; otherwise synthesise from fields the row DOES
+   have (Scoring/top10/top3). "Need verification" / empty are treated as absent,
+   so the table never shows a wall of ⚠. No new data is invented. */
+function _has(v){
+  if(v === null || v === undefined) return false;
+  if(Array.isArray(v)) return v.length > 0;
+  const s = String(v).trim();
+  return s !== '' && !/need verification/i.test(s);
+}
+function _join(v){ return Array.isArray(v) ? v.join(' · ') : String(v); }
+function _arr(v){
+  if(Array.isArray(v)) return v.filter(x => _has(x));
+  if(!_has(v)) return [];
+  return String(v).split(/\s*[·;|]\s*|\n+/).map(x => x.trim()).filter(Boolean);
+}
+
+/* Group Fit text is derived from group_score (0–20) — single source of truth,
+   used in every Group Fit column/badge. group_score itself is never changed. */
+const GROUPFIT_ORDER = ['เหมาะมากกับทีม 8–12 คน','เหมาะกับทีม 8–12 คน / ควรจองก่อน',
+                        'พอใช้ / ต้องยืนยันโต๊ะกลุ่ม','ไม่ค่อยเหมาะ / ข้อมูลไม่พอ'];
+function groupFitLabel(score){
+  const n = Number(score);
+  if(isNaN(n)) return 'ไม่ค่อยเหมาะ / ข้อมูลไม่พอ';
+  if(n >= 18) return 'เหมาะมากกับทีม 8–12 คน';
+  if(n >= 14) return 'เหมาะกับทีม 8–12 คน / ควรจองก่อน';
+  if(n >= 10) return 'พอใช้ / ต้องยืนยันโต๊ะกลุ่ม';
+  return 'ไม่ค่อยเหมาะ / ข้อมูลไม่พอ';
+}
+/* Group Fit display = the latest group_fit value from the Sheet.
+   If it's empty / a placeholder (Medium, High, Low, …) / verify text,
+   fall back to the group_score label so "Medium" is never shown. */
+function groupFitDisplay(r){
+  const gf = String(r && r.group_fit != null ? r.group_fit : '').trim();
+  const placeholder = gf === ''
+    || /^(medium|high|low|mid|n\/?a|none|null|undefined)$/i.test(gf)
+    || /need verification/i.test(gf)
+    || gf === 'ควรตรวจสอบเพิ่มเติม';
+  return placeholder ? groupFitLabel(r.group_score) : gf;
+}
+
+function getBestFor(r){
+  if(_has(r.best_for)) return _join(r.best_for);
+  let s = 'ทีมที่ต้องการร้านย่าน ' + normalizeArea(r.area);
+  if(_has(r.food_type))   s += ' · ' + r.food_type;
+  if(_has(r.price_range)) s += ' · ราคา ' + priceTH(r.price_range);
+  s += ' · ' + groupFitDisplay(r);
+  return s;
+}
+function getStrengths(r){
+  if(_has(r.strengths))  return _join(r.strengths);
+  if(_has(r.pros))       return _join(r.pros);
+  if(_has(r.reasoning))  return _join(r.reasoning);
+  if(_has(r.reason))     return _join(r.reason);
+  const parts = [];
+  if(_has(r.total_score))  parts.push('คะแนนรวม ' + r.total_score + '/100');
+  if(_has(r.rating))       parts.push('rating ' + r.rating + (_has(r.review_count) ? ' จาก ' + fmt(r.review_count) + ' รีวิว' : ''));
+  if(_has(r.price_range))  parts.push('ราคา ' + priceTH(r.price_range));
+  return parts.length ? parts.join(' · ') : val(undefined);
+}
+function getTradeOff(r){
+  if(_has(r.trade_off_risk)) return _join(r.trade_off_risk);
+  if(_has(r.cons))           return _join(r.cons);
+  const warn = /ยืนยัน|ตรวจสอบ|จอง|ระวัง|confirm|verify|book/i;
+  if(_has(r.final_note) && warn.test(r.final_note)) return r.final_note;
+  if(_has(r.reasoning) && warn.test(_join(r.reasoning))) return _join(r.reasoning);
+  if(_has(r.final_note)) return r.final_note;
+  return TRADEOFF_FALLBACK;
+}
+function getFinalRecommendation(r){
+  if(_has(r.final_recommendation)) return _join(r.final_recommendation);
+  if(_has(r.final_note))           return r.final_note;
+  let s = 'เหมาะเป็นตัวเลือกในย่าน ' + normalizeArea(r.area);
+  if(_has(r.total_score)) s += ' (คะแนน ' + r.total_score + '/100)';
+  s += ' สำหรับทีม 8–12 คน';
+  s += ' — ' + groupFitDisplay(r);
+  s += ' โดยควรยืนยันโต๊ะและรายละเอียดกับร้านก่อนตัดสินใจ';
+  return s;
+}
+
+/* ----- Top 3 card builders (reuse the same fallback philosophy) ----- */
+function getCardHighlight(r){
+  if(_has(r.why_recommended)) return _join(r.why_recommended);
+  let s = 'รองรับกลุ่ม 8–12 คน';
+  s += ' (' + groupFitDisplay(r) + ')';
+  if(_has(r.price_range)) s += ' · ราคา ' + priceTH(r.price_range);
+  s += ' · ย่าน ' + normalizeArea(r.area);
+  return s;
+}
+function getCardPros(r){
+  if(_has(r.strengths)) return _arr(r.strengths);
+  if(_has(r.pros))      return _arr(r.pros);
+  if(_has(r.reasoning)) return _arr(r.reasoning);
+  const out = [];
+  if(_has(r.rating)) out.push('rating ' + r.rating + (_has(r.review_count) ? ' จาก ' + fmt(r.review_count) + ' รีวิว' : '') + ' ใช้ตัดสินใจได้');
+  out.push('มีแนวโน้มรองรับทีม 8–12 คน (' + groupFitDisplay(r) + ')');
+  if(_has(r.price_range))  out.push('ราคาอยู่ในช่วง ' + priceTH(r.price_range));
+  if(_has(r.total_score))  out.push('คะแนนรวม ' + r.total_score + '/100');
+  return out.length ? out : ['ข้อมูลรีวิวใช้ประกอบการตัดสินใจ'];
+}
+function getCardTradeOff(r){
+  if(_has(r.trade_off_risk)) return _arr(r.trade_off_risk);
+  if(_has(r.cons))           return _arr(r.cons);
+  if(_has(r.final_note))     return [r.final_note];
+  return [TRADEOFF_FALLBACK];
+}
+function getCardFinalRecommendation(r, index){
+  if(_has(r.final_recommendation)) return _join(r.final_recommendation);
+  if(_has(r.final_note))           return r.final_note;
+  return 'เหมาะเป็นตัวเลือกอันดับ ' + (index + 1) + ' ในย่าน ' + normalizeArea(r.area)
+    + ' สำหรับทีม 8–12 คน โดยควรยืนยันโต๊ะและรายละเอียดกับร้านก่อนตัดสินใจ';
 }
 function linkBtn(url,label,solid){
   const cls = 'btn'+(solid?' solid':'');
@@ -1659,11 +1779,24 @@ const AREA_LIST = ['สยาม','อารีย์','ทองหล่อ','
 let currentArea = ALL_AREAS;
 const EMPTY = 'ไม่พบร้านในพื้นที่นี้';
 
+/* Map any area spelling (English/long from live n8n data, or Thai from embedded)
+   to one canonical Thai key. Idempotent for the Thai labels. */
+function normalizeArea(area){
+  const s = String(area || '').toLowerCase();
+  if(s.indexOf('siam') >= 0 || s.indexOf('สยาม') >= 0) return 'สยาม';
+  if(s.indexOf('phrom phong') >= 0 || s.indexOf('sukhumvit') >= 0 || s.indexOf('prompong') >= 0
+     || s.indexOf('พร้อมพงษ์') >= 0 || s.indexOf('สุขุมวิท') >= 0) return 'พร้อมพงษ์';
+  if(s.indexOf('asoke') >= 0 || s.indexOf('อโศก') >= 0) return 'อโศก';
+  if(s.indexOf('thonglor') >= 0 || s.indexOf('thong lo') >= 0 || s.indexOf('ทองหล่อ') >= 0) return 'ทองหล่อ';
+  if(s.indexOf('ari') >= 0 || s.indexOf('อารีย์') >= 0) return 'อารีย์';
+  return area;
+}
+
 /* return data for the active area, sorted by total_score desc (copy — never mutate source) */
 function getFilteredData(){
   const d = (currentArea === ALL_AREAS)
     ? restaurantsData.slice()
-    : restaurantsData.filter(r => r.area === currentArea);
+    : restaurantsData.filter(r => normalizeArea(r.area) === currentArea);
   return d.slice().sort((a,b) => b.total_score - a.total_score);
 }
 
@@ -1687,7 +1820,7 @@ function renderHero(data){
     '<div>'
       +'<span class="tag">🏆 BEST OVERALL · TOP PICK</span>'
       +'<h3>'+t.restaurant_name+'</h3>'
-      +'<div class="loc">📍 '+t.area+' · '+val(t.food_type)+'</div>'
+      +'<div class="loc">📍 '+normalizeArea(t.area)+' · '+val(t.food_type)+'</div>'
       +'<ul class="hero-bullets">'+bullets.map(b=>'<li><span class="ic">✓</span><span>'+b+'</span></li>').join('')+'</ul>'
     +'</div>'
     +'<div><div class="ring"><div class="big">'+t.total_score+'</div><div class="of">/ 100</div>'
@@ -1696,7 +1829,7 @@ function renderHero(data){
 
 /* ---------- Summary cards ---------- */
 function renderSummary(data){
-  const areas = [...new Set(data.map(r=>r.area))];
+  const areas = [...new Set(data.map(r=>normalizeArea(r.area)))];
   const top = data[0];
   const cards = [
     {k:'Total Restaurants', v:data.length, s:'ร้านที่วิเคราะห์'},
@@ -1717,20 +1850,20 @@ function renderTop3(data){
   const box = document.getElementById('recCards');
   if(!data.length){ box.innerHTML = '<div style="color:var(--muted);">'+EMPTY+'</div>'; return; }
   box.innerHTML = data.slice(0,3).map((r,i)=>{
-    const pros = (r.pros||[]).map(p=>'<li>'+p+'</li>').join('');
-    const cons = (r.cons||[]).map(c=>'<li>'+c+'</li>').join('');
+    const pros = getCardPros(r).map(p=>'<li>'+p+'</li>').join('');
+    const cons = getCardTradeOff(r).map(c=>'<li>'+c+'</li>').join('');
     const ss = SUB(r).map(s=>'<span class="ss">'+s[0]+' '+s[1]+'/'+s[2]+'</span>').join('');
-    const why = 'รองรับกลุ่ม 8–12 คน ('+val(r.group_fit)+') · '+shortNote(r.travel_note)+' · '+formatPriceTH(r.price_range);
+    const why = getCardHighlight(r);
     const recmeta = '<div class="recmeta">'
       +'<span>⭐ '+r.rating+'</span><span>💬 '+fmt(r.review_count)+'</span><span>📍 '+r.area+'</span></div>';
     const badges = '<div class="recbadges">'
       +'<span class="fbadge">🍴 '+val(r.food_type)+'</span>'
       +'<span class="fbadge">฿ '+priceTH(r.price_range)+'</span>'
-      +'<span class="fbadge">👥 '+val(r.group_fit)+'</span></div>';
+      +'<span class="fbadge">👥 '+groupFitDisplay(r)+'</span></div>';
     return '<div class="rec '+skins[i]+'">'
       +'<div class="head"><span class="label">'+labels[i]+'</span>'
         +'<h3>🍽️ '+r.restaurant_name+'</h3>'
-        +'<div class="loc">📍 '+r.area+' · '+val(r.food_type)+'</div>'
+        +'<div class="loc">📍 '+normalizeArea(r.area)+' · '+val(r.food_type)+'</div>'
         +recmeta
         +'<div class="scorebox"><span class="big">'+r.total_score+'</span><span class="of">/ 100 คะแนน</span></div>'
         +'<div class="subscores">'+ss+'</div>'
@@ -1741,7 +1874,7 @@ function renderTop3(data){
         +'<div class="blk"><h5>จุดเด่น</h5><ul>'+pros+'</ul></div>'
         +'<div class="blk"><h5>ข้อควรระวัง / Trade-off</h5><ul class="cons">'+cons+'</ul></div>'
       +'</div>'
-      +'<div class="foot"><div class="fnote">'+val(r.final_recommendation)+'</div>'
+      +'<div class="foot"><div class="fnote">'+getCardFinalRecommendation(r,i)+'</div>'
         +'<div class="recbtns">'+linkBtn(r.google_maps_url,'📍 Google Maps',true)+linkBtn(r.second_source_url,'Review')+'</div>'
       +'</div>'
     +'</div>';
@@ -1770,12 +1903,12 @@ function renderTop10(data){
       +'<td><span class="'+rc+'">'+disp+'</span></td>'
       +'<td class="rname"><b>'+r.restaurant_name+'</b>'
         +'<div><button class="exp" data-r="'+r.rank+'">ดูคะแนนย่อย ▾</button></div></td>'
-      +'<td><span class="areatag">'+r.area+'</span></td>'
+      +'<td><span class="areatag">'+normalizeArea(r.area)+'</span></td>'
       +'<td>'+val(r.food_type)+'</td>'
       +'<td>'+r.rating+'★</td>'
       +'<td>'+fmt(r.review_count)+'</td>'
       +'<td>'+priceTH(r.price_range)+'</td>'
-      +'<td>'+val(r.group_fit)+'</td>'
+      +'<td>'+groupFitDisplay(r)+'</td>'
       +'<td><span class="totalpill">'+r.total_score+'</span></td>'
       +'<td><div class="evidence-actions">'+linkBtn(r.google_maps_url,'Maps')+linkBtn(r.second_source_url,'Review')+'</div></td>'
       +'</tr>';
@@ -1802,14 +1935,16 @@ function renderComparison(data){
     body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">'+EMPTY+'</td></tr>';
     return;
   }
-  /* show all restaurants in the current filtered result, capped at 10 rows */
+  /* show all restaurants in the current filtered result, capped at 10 rows.
+     Every column goes through a fallback builder so single-area views (data
+     from Scoring/top10 without best_for/strengths/…) still render full text. */
   body.innerHTML = data.slice(0,10).map(r=>
     '<tr>'
-    +'<td style="min-width:170px;"><b>'+r.restaurant_name+'</b><br><span class="areatag">'+r.area+'</span></td>'
-    +'<td style="min-width:160px;">'+val(r.best_for)+'</td>'
-    +'<td style="min-width:220px;">'+val(r.strengths)+'</td>'
-    +'<td style="min-width:180px;color:var(--amber);">'+tradeoffText(r)+'</td>'
-    +'<td style="min-width:220px;">'+val(r.final_recommendation)+'</td>'
+    +'<td style="min-width:170px;"><b>'+r.restaurant_name+'</b><br><span class="areatag">'+normalizeArea(r.area)+'</span></td>'
+    +'<td style="min-width:160px;">'+getBestFor(r)+'</td>'
+    +'<td style="min-width:220px;">'+getStrengths(r)+'</td>'
+    +'<td style="min-width:180px;color:var(--amber);">'+getTradeOff(r)+'</td>'
+    +'<td style="min-width:220px;">'+getFinalRecommendation(r)+'</td>'
     +'</tr>'
   ).join('');
 }
@@ -1828,7 +1963,7 @@ function updateHeadings(){
     cmpTitle.textContent = 'Restaurant Comparison (Top 10 of All Areas)';
     cmpLead.textContent = 'เปรียบเทียบจุดเด่น ข้อควรระวัง และคำแนะนำของร้าน Top 10 จากทั้งหมด '+restaurantsData.length+' ร้าน';
   }else{
-    const cnt = restaurantsData.filter(r=>r.area===currentArea).length;
+    const cnt = restaurantsData.filter(r=>normalizeArea(r.area)===currentArea).length;
     cmpTitle.textContent = 'Restaurant Comparison ('+currentArea+' · '+cnt+' restaurants)';
     cmpLead.textContent = 'เปรียบเทียบร้านทั้งหมดในพื้นที่ที่เลือกจากผลจัดอันดับ';
   }
@@ -1847,7 +1982,7 @@ function renderQuestionChips(){
 }
 
 /* ---------- Area filter buttons ---------- */
-function areaCount(a){ return (a===ALL_AREAS) ? restaurantsData.length : restaurantsData.filter(r=>r.area===a).length; }
+function areaCount(a){ return (a===ALL_AREAS) ? restaurantsData.length : restaurantsData.filter(r=>normalizeArea(r.area)===a).length; }
 function renderAreaButtons(){
   const areas = [ALL_AREAS, ...AREA_LIST];
   document.getElementById('areaFilterBtns').innerHTML = areas.map(a=>{
@@ -1982,14 +2117,7 @@ let ask;  /* assigned inside the askbox IIFE; used by question chips */
     'อาหารยุโรป / ตะวันตก','อาหารเมดิเตอร์เรเนียน','อาหารจีน','อาหารเอเชียนฟิวชัน','บุฟเฟต์',
     'Fine Dining / Michelin','อื่น ๆ'];
 
-  /* Normalize group_fit into friendly wording — filter/display only. */
-  function groupLabel(g){
-    const s = String(g||'');
-    if(s.indexOf('รองรับกลุ่มได้ดี')>=0) return 'เหมาะกับทีม 8–12 คน';
-    if(s.indexOf('น่าจะรองรับ')>=0) return 'น่าจะรองรับทีมได้';
-    return 'ควรโทรยืนยันก่อนจอง';   /* ต้องยืนยัน / Need verification / unknown */
-  }
-  const GROUP_ORDER = ['เหมาะกับทีม 8–12 คน','น่าจะรองรับทีมได้','ควรโทรยืนยันก่อนจอง'];
+  /* Group Fit wording is derived from group_score via groupFitLabel() (module scope). */
 
   function fillFixed(id, order, mapFn){
     const present = order.filter(c=>restaurantsData.some(r=>mapFn(r)===c));
@@ -1999,11 +2127,14 @@ let ask;  /* assigned inside the askbox IIFE; used by question chips */
 
   /* populate options (price/food/group normalized; area from data) — re-runnable */
   function populate(){
-    fillSelect('dsArea', AREA_LIST.filter(a=>restaurantsData.some(r=>r.area===a)), 'ทั้งหมด');
+    fillSelect('dsArea', AREA_LIST.filter(a=>restaurantsData.some(r=>normalizeArea(r.area)===a)), 'ทั้งหมด');
     fillFixed('dsFood', FOOD_ORDER, r=>foodCategory(r.food_type));
     $('dsPrice').innerHTML = '<option value="">ทั้งหมด</option>'
       + PRICE_BUCKETS.map(b=>'<option value="'+b[0]+'">'+b[1]+'</option>').join('');
-    fillFixed('dsGroup', GROUP_ORDER, r=>groupLabel(r.group_fit));
+    /* Group Fit filter options = distinct displayed group_fit values (Sheet first, Medium-guarded) */
+    $('dsGroup').innerHTML = '<option value="">ทั้งหมด</option>'
+      + [...new Set(restaurantsData.map(r=>groupFitDisplay(r)))]
+          .map(c=>'<option value="'+String(c).replace(/"/g,'&quot;')+'">'+c+'</option>').join('');
   }
 
   function render(){
@@ -2011,10 +2142,10 @@ let ask;  /* assigned inside the askbox IIFE; used by question chips */
           fg=$('dsGroup').value,
           q=$('dsSearch').value.trim().toLowerCase();
     const rows = restaurantsData.filter(r=>{
-      if(fa && r.area!==fa) return false;
+      if(fa && normalizeArea(r.area)!==fa) return false;
       if(ff && foodCategory(r.food_type)!==ff) return false;
       if(fp && priceBucket(r.price_range)!==fp) return false;
-      if(fg && groupLabel(r.group_fit)!==fg) return false;
+      if(fg && groupFitDisplay(r)!==fg) return false;
       if(q && String(r.restaurant_name||'').toLowerCase().indexOf(q)<0) return false;
       return true;
     }).slice().sort((a,b)=>b.total_score-a.total_score);  /* copy — never mutate source */
@@ -2030,12 +2161,12 @@ let ask;  /* assigned inside the askbox IIFE; used by question chips */
       const cons=(r.cons||[]).map(c=>'<li>'+c+'</li>').join('');
       const main='<tr>'
         +'<td class="rname"><b>'+r.restaurant_name+'</b></td>'
-        +'<td><span class="areatag">'+r.area+'</span></td>'
+        +'<td><span class="areatag">'+normalizeArea(r.area)+'</span></td>'
         +'<td>'+val(r.food_type)+'</td>'
         +'<td>⭐ '+r.rating+'</td>'
         +'<td>💬 '+fmt(r.review_count)+'</td>'
         +'<td><span class="fbadge" title="'+String(r.price_range||'').replace(/"/g,'&quot;')+'">฿ '+priceTH(r.price_range)+'</span></td>'
-        +'<td><span class="fbadge" title="'+String(r.group_fit||'').replace(/"/g,'&quot;')+'">👥 '+groupLabel(r.group_fit)+'</span></td>'
+        +'<td><span class="fbadge" title="group_score '+r.group_score+'">👥 '+groupFitDisplay(r)+'</span></td>'
         +'<td><span class="totalpill">'+r.total_score+'</span></td>'
         +'<td><div class="dsactions">'
           +linkBtn(r.google_maps_url,'🗺️ ดูแผนที่')
@@ -2091,7 +2222,7 @@ function setDataMode(mode, updatedAt){
     el.className = live ? 'dmbadge live' : 'dmbadge';
     el.textContent = live
       ? ('● Data mode: Live from n8n' + (updatedAt ? ' · updated_at: ' + updatedAt : ''))
-      : 'Data mode: Embedded fallback';
+      : 'Data source: Embedded report dataset';
   }
   if(panel){
     if(live){
@@ -2103,9 +2234,8 @@ function setDataMode(mode, updatedAt){
     }else{
       panel.className = 'datastatus fallback';
       panel.innerHTML =
-        '<span class="dm-title"><span class="dm-dot"></span>Data mode: Embedded fallback</span>'
-        + '<span class="dm-seg">Live Data API verified via n8n Production URL, but browser live loading is blocked by CORS in the current n8n environment.</span>'
-        + '<span class="dm-seg">Source pipeline tested: <b>Google Sheets CSV → n8n Production Webhook → JSON response</b></span>';
+        '<span class="dm-title"><span class="dm-dot"></span>Data source: Embedded report dataset</span>'
+        + '<span class="dm-seg">n8n Production API proof available in Evidence section</span>';
     }
   }
 }
@@ -2118,6 +2248,66 @@ function applyLiveData(arr){
   if(typeof refreshDataset === 'function') refreshDataset();  // dataset section dropdowns + table
 }
 
+/* Map a restaurant object coming from the n8n CSV into the exact keys/types
+   the UI renders. CSV values arrive as strings; alternate key spellings and
+   "·"-joined lists are tolerated. Unknown keys are preserved as-is. */
+function normalizeRestaurant(r, i){
+  const pick = (...keys) => { for(const k of keys){ if(r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; } return undefined; };
+  const num  = (v, d) => { const n = parseFloat(v); return isNaN(n) ? d : n; };
+  const arr  = (v) => Array.isArray(v) ? v
+                    : (v === undefined || v === null || v === '') ? []
+                    : String(v).split(/\s*[·|;\n]\s*/).filter(Boolean);
+  return Object.assign({}, r, {
+    rank:                    pick('rank') !== undefined ? num(pick('rank'), i + 1) : (i + 1),
+    restaurant_name:         pick('restaurant_name', 'name', 'Restaurant') || '',
+    area:                    pick('area', 'Area') || '',
+    food_type:               pick('food_type', 'foodType', 'Food Type') || '',
+    rating:                  num(pick('rating', 'Rating'), 0),
+    review_count:            num(pick('review_count', 'reviews', 'Reviews'), 0),
+    price_range:             pick('price_range', 'price', 'Price') || '',
+    group_fit:               pick('group_fit', 'groupFit', 'Group Fit') || '',
+    rating_review_score:     num(pick('rating_review_score'), 0),
+    group_score:             num(pick('group_score'), 0),
+    price_score:             num(pick('price_score'), 0),
+    travel_score:            num(pick('travel_score'), 0),
+    data_completeness_score: num(pick('data_completeness_score'), 0),
+    uniqueness_score:        num(pick('uniqueness_score'), 0),
+    total_score:             num(pick('total_score', 'score', 'totalScore', 'Total Score'), 0),
+    pros:                    arr(pick('pros')),
+    cons:                    arr(pick('cons')),
+    google_maps_url:         pick('google_maps_url', 'maps_url', 'google_maps') || '',
+    second_source_url:       pick('second_source_url', 'review_url', 'source2') || ''
+  });
+}
+
+/* ---------- merge live data with embedded Clean Data ---------- */
+/* a live value counts as "missing" when empty / undefined / a verify placeholder */
+function liveMissing(v){
+  if(v === null || v === undefined) return true;
+  if(Array.isArray(v)) return v.length === 0;
+  const s = String(v).trim();
+  return s === '' || /need verification/i.test(s) || s === 'ควรตรวจสอบเพิ่มเติม' || s === '⚠ Need verification';
+}
+/* normalize a restaurant name into a match key: trim, lowercase, collapse spaces */
+function nameKey(name){ return String(name || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+function mergeLiveWithEmbedded(liveRows){
+  const idx = {};
+  EMBEDDED_DATA.forEach(e => { idx[nameKey(e.restaurant_name)] = e; });
+  return liveRows.map(live => {
+    const emb = idx[nameKey(live.restaurant_name)];
+    if(!emb) return live;                              // no embedded match → live as-is
+    const merged = Object.assign({}, emb, live);       // live wins (score/rank/urls/breakdown)
+    /* but where the live value is missing, fall back to embedded Clean Data
+       (address, opening_hours, travel_note, notes, reason, pros, cons,
+        final_note, group_fit, price_range/area/food_type, …) */
+    Object.keys(live).forEach(k => {
+      if(liveMissing(live[k]) && !liveMissing(emb[k])) merged[k] = emb[k];
+    });
+    return merged;
+  });
+}
+
 setDataMode('embedded');
 (async function loadReportData(){
   if(!REPORT_DATA_WEBHOOK_URL || !REPORT_DATA_WEBHOOK_URL.trim()) return;
@@ -2125,20 +2315,52 @@ setDataMode('embedded');
   try{
     const res = await fetch(REPORT_DATA_WEBHOOK_URL);
     if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    console.log("Live data response:", data);
-    if(data && data.status === 'success' && Array.isArray(data.restaurantsData) && data.restaurantsData.length){
-      restaurantsData = data.restaurantsData;   // swap embedded -> live
-      applyLiveData(restaurantsData);            // re-render every data-driven section
-      setDataMode('live', data.updated_at);      // green badge + status panel
-      console.log("Live data loaded from n8n");
+    const raw = await res.json();
+    console.log("Live data response:", raw);
+    /* n8n may return the payload wrapped in an array: [ { status, restaurantsData, ... } ] */
+    const data = Array.isArray(raw) ? raw[0] : raw;
+
+    /* Pick the source list:
+       prefer restaurantsData; if it's empty, fall back to top10 (the ranking
+       tab) so the page can still go live. top10 carries rank/score/area/etc. */
+    let items = Array.isArray(data && data.restaurantsData) ? data.restaurantsData : [];
+    if(items.length === 0 && Array.isArray(data && data.top10) && data.top10.length){
+      console.warn("restaurantsData is empty — using top10 as the live dataset.");
+      items = data.top10;
+    }
+    /* enrich each item with Top 3 detail fields (matched by name) when present */
+    if(items.length && Array.isArray(data && data.top3) && data.top3.length){
+      const byName = {};
+      data.top3.forEach(t => { byName[String(t.restaurant_name || '').trim()] = t; });
+      items = items.map(it => {
+        const t = byName[String(it.restaurant_name || '').trim()];
+        return t ? Object.assign({}, it, {
+          best_for:             it.best_for || t.best_for,
+          why_recommended:      it.why_recommended || t.why_recommended,
+          strengths:            it.strengths || t.strengths,
+          trade_off_risk:       it.trade_off_risk || t.trade_off_risk,
+          final_recommendation: it.final_recommendation || t.final_recommendation
+        }) : it;
+      });
+    }
+
+    if(data && data.status === 'success' && items.length){
+      const live = items.map(normalizeRestaurant);
+      /* merge live (score/rank/urls) onto embedded Clean Data (address, hours,
+         travel_note, reason, pros/cons, …) so detail fields don't disappear */
+      const merged = mergeLiveWithEmbedded(live)
+        .sort((a, b) => b.total_score - a.total_score);   // keep Top order by score
+      restaurantsData = merged;                // live scores + embedded details
+      applyLiveData(restaurantsData);          // re-render every data-driven section
+      setDataMode('live', data.updated_at);    // green badge + status panel
+      console.log("Live data loaded from n8n:", merged.length, "restaurants (merged with embedded Clean Data)");
     }else{
-      console.warn("Live data not in expected shape — keeping embedded fallback.", data);
+      console.warn("Live data not in expected shape — keeping embedded data.", raw);
       setDataMode('embedded');
     }
   }catch(err){
-    /* network/parse error → keep embedded fallback */
-    console.warn("Live data fetch failed — using embedded fallback:", err.message);
+    /* network/parse error → keep embedded data */
+    console.warn("Live data fetch failed — using embedded data:", err.message);
     setDataMode('embedded');
   }
 })();
