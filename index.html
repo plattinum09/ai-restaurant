@@ -344,7 +344,7 @@
     <a href="#all-dataset">🍱 ร้านทั้งหมด</a>
     <a href="#workflow">⚙️ วิธีทำงาน</a>
     <a href="#evidence">🔗 หลักฐานข้อมูล</a>
-    <span class="live-mini"><span class="dot"></span>LIVE · n8n Connected</span>
+    <span class="live-mini"><span class="dot"></span>n8n Ask Box Connected</span>
   </div>
 </nav>
 
@@ -394,7 +394,6 @@
   <h2><span class="n">1</span> Executive Summary</h2>
   <p class="lead">วิเคราะห์ร้านอาหารสำหรับมื้อทีม <b>8–12 คน</b> ใน 5 ย่าน ด้วยข้อมูลจริงจาก <b>Apify / Google Maps</b>
      + แหล่งข้อมูลที่ 2 (Wongnai / Tripadvisor) ให้คะแนนด้วย <b>Scoring Model 100 คะแนน</b> แล้วคัด Top 10 และ Top 3.</p>
-  <div class="datastatus" id="dataStatus"></div>
   <div class="cards" id="summaryCards"></div>
 </section>
 
@@ -2214,30 +2213,16 @@ renderAll();
    ========================================================= */
 const REPORT_DATA_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/restaurant-report-data";
 
+/* Header badge only — Executive Summary status panel removed.
+   n8n is shown as verified/connected; final results stay on the embedded dataset. */
 function setDataMode(mode, updatedAt){
   const el = document.getElementById('dataModeBadge');
-  const panel = document.getElementById('dataStatus');
-  const connected = (mode === 'connected');   /* n8n reachable, but final = embedded */
-  if(el){
-    el.className = connected ? 'dmbadge live' : 'dmbadge';
-    el.textContent = connected
-      ? ('● n8n Connected' + (updatedAt ? ' · last sync ' + updatedAt : ''))
-      : 'Data source: Embedded report dataset';
-  }
-  if(panel){
-    if(connected){
-      panel.className = 'datastatus live';
-      panel.innerHTML =
-        '<span class="dm-title"><span class="dm-dot"></span>n8n Live Data API connected</span>'
-        + '<span class="dm-seg">Final results from <b>embedded report dataset</b></span>'
-        + '<span class="dm-seg">Last sync: <b>' + (updatedAt || '-') + '</b></span>';
-    }else{
-      panel.className = 'datastatus fallback';
-      panel.innerHTML =
-        '<span class="dm-title"><span class="dm-dot"></span>Data source: Embedded report dataset</span>'
-        + '<span class="dm-seg">n8n Production API proof available in Evidence section</span>';
-    }
-  }
+  if(!el) return;
+  const connected = (mode === 'connected');
+  el.className = connected ? 'dmbadge live' : 'dmbadge';
+  el.textContent = connected
+    ? ('● n8n Connected' + (updatedAt ? ' · last sync ' + updatedAt : ''))
+    : 'Final: Embedded Dataset';
 }
 
 /* swap dataset and re-render every data-driven section */
