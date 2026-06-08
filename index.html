@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Restaurant Finder for Team Dinner</title>
+<style>
+  :root{
+    /* warm food + clean dashboard palette */
+    --navy:#3d2415; --navy2:#5e3a22; --navy3:#2a1810; --blue:#d2691e; --blue-soft:#fbeede;
+    --ink:#3a2a20; --muted:#8c7b6d; --line:#ece2d5; --bg:#fbf6ee;
+    --white:#ffffff; --gold:#c2901f; --green:#2e9b57; --amber:#b45309; --red:#c0392b;
+    --shadow:0 1px 3px rgba(80,50,25,.08),0 8px 28px rgba(80,50,25,.07);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun","Noto Sans Thai",Tahoma,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.65;font-size:15px;}
+  a{color:var(--blue);}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px;}
+  section{scroll-margin-top:64px;}
+
+  /* ---------- Header ---------- */
+  header.top{background:linear-gradient(135deg,var(--navy3),var(--navy2));color:#fff;padding:30px 0 26px;}
+  header.top h1{margin:0;font-size:28px;letter-spacing:.2px;}
+  header.top .sub{color:#ecd9c2;margin-top:6px;font-size:14.5px;}
+  .badgeline{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px;}
+  .area-badge{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.25);
+              padding:4px 12px;border-radius:999px;font-size:12.5px;}
+  .meta{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:13px;color:#ecd9c2;}
+  .meta b{color:#fff;font-weight:600;}
+  .dmbadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+           padding:3px 11px;border-radius:999px;background:rgba(255,255,255,.14);
+           border:1px solid rgba(255,255,255,.3);color:#f0e2d2;}
+  .dmbadge.live{background:rgba(46,155,87,.22);border-color:rgba(95,208,138,.6);color:#bdf0cf;}
+  /* live-data status panel in Executive Summary */
+  .datastatus{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:0 0 18px;
+              padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:#fff;
+              box-shadow:var(--shadow);font-size:13px;color:var(--muted);}
+  .datastatus.live{background:#f3fbf6;border-color:#bfe6cd;}
+  .datastatus.fallback{background:#fffaf0;border-color:#f0e2c0;}
+  .datastatus .dm-title{font-weight:800;color:var(--navy);display:inline-flex;align-items:center;gap:8px;}
+  .datastatus.live .dm-title{color:var(--green);}
+  .datastatus.fallback .dm-title{color:var(--amber);}
+  .datastatus .dm-dot{width:9px;height:9px;border-radius:50%;background:#c2b6a6;}
+  .datastatus.live .dm-dot{background:#22c55e;animation:pulse 1.8s infinite;}
+  .datastatus .dm-seg{display:inline-flex;align-items:center;gap:6px;}
+  .datastatus .dm-seg b{color:var(--navy);font-weight:600;}
+
+  /* ---------- Sticky nav ---------- */
+  .nav{position:sticky;top:0;z-index:60;background:rgba(42,24,16,.97);backdrop-filter:blur(8px);
+       box-shadow:0 2px 10px rgba(0,0,0,.18);}
+  .nav .inner{max-width:1180px;margin:0 auto;display:flex;gap:2px;overflow-x:auto;padding:0 12px;}
+  .nav a{color:#e9d8c4;text-decoration:none;padding:13px 15px;font-size:13px;font-weight:600;
+         white-space:nowrap;border-bottom:3px solid transparent;}
+  .nav a:hover{color:#fff;border-bottom-color:var(--blue);}
+  .nav .live-mini{margin-left:auto;display:flex;align-items:center;gap:7px;color:#bfe9cf;
+                  font-size:12px;font-weight:600;padding:13px 6px;white-space:nowrap;}
+
+  /* ---------- Hero / Snapshot ---------- */
+  .hero{background:linear-gradient(135deg,#2a1810,#7a4a26 75%);color:#fff;padding:30px 0 34px;position:relative;overflow:hidden;}
+  .hero .wrap{position:relative;z-index:1;}
+  /* soft food-themed decorative emojis, very low opacity */
+  .hero::after{content:"🍽️ 🥢 ⭐ 📍 👥 🍜 🍷 🧑‍🍳";position:absolute;inset:0;font-size:40px;line-height:2.4;
+               letter-spacing:34px;opacity:.05;white-space:pre-wrap;pointer-events:none;transform:rotate(-8deg) scale(1.3);}
+  .hero .eyebrow{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:#f3c79a;font-weight:700;}
+  .hero h2.htitle{font-size:22px;margin:6px 0 18px;}
+  .hero-card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.16);border-radius:20px;
+             padding:24px;display:grid;grid-template-columns:1.5fr .9fr;gap:26px;align-items:center;}
+  .hero-card .tag{display:inline-block;background:linear-gradient(135deg,#b8860b,#e0aa2a);color:#241a00;
+                  font-weight:800;font-size:12px;padding:5px 12px;border-radius:999px;letter-spacing:.4px;}
+  .hero-card h3{margin:12px 0 4px;font-size:26px;line-height:1.25;}
+  .hero-card .loc{color:#eed9c1;font-size:14px;margin-bottom:14px;}
+  .hero-bullets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+  .hero-bullets li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;}
+  .hero-bullets li .ic{color:#5fd08a;font-weight:800;}
+  .ring{display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:radial-gradient(circle at 50% 40%,rgba(210,105,30,.4),rgba(210,105,30,.06));
+        border:2px solid rgba(240,180,120,.55);border-radius:50%;width:172px;height:172px;margin:0 auto;}
+  .ring .big{font-size:46px;font-weight:800;line-height:1;}
+  .ring .of{font-size:13px;color:#eed2b6;margin-top:4px;}
+  .ring .lbl{font-size:11px;color:#f3c79a;letter-spacing:1px;text-transform:uppercase;margin-top:8px;}
+  .hero-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+  .hbtn{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:700;font-size:14px;
+        padding:11px 18px;border-radius:11px;}
+  .hbtn.primary{background:var(--blue);color:#fff;}
+  .hbtn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.28);}
+  .hbtn:hover{filter:brightness(1.08);}
+
+  /* ---------- Generic section ---------- */
+  .sec{padding:40px 0;border-bottom:1px solid var(--line);}
+  .sec h2{font-size:21px;color:var(--navy);margin:0 0 4px;display:flex;align-items:center;gap:10px;}
+  .sec h2 .n{background:var(--blue);color:#fff;width:30px;height:30px;border-radius:9px;
+             display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+  .sec .lead{color:var(--muted);margin:2px 0 22px;max-width:840px;}
+  /* methodology sections — lower visual dominance than the food sections */
+  .sec.soft h2{color:var(--navy2);}
+  .sec.soft h2 .n{background:#b89a7e;}
+
+  /* ---------- Summary cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .scard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .scard .k{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+  .scard .v{font-size:24px;font-weight:800;color:var(--navy);margin-top:8px;}
+  .scard .v small{font-size:12.5px;color:var(--muted);font-weight:500;display:block;margin-top:3px;line-height:1.4;}
+
+  /* ---------- Top 3 cards ---------- */
+  .reccards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .rec{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);
+       display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;}
+  .rec:hover{transform:translateY(-4px);box-shadow:0 14px 40px rgba(15,39,71,.16);}
+  .rec .head{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:20px;position:relative;}
+  .rec.gold .head{background:linear-gradient(135deg,#6e5200,#b8860b);}
+  .rec.silver .head{background:linear-gradient(135deg,#3a4654,#6b7888);}
+  .rec.bronze .head{background:linear-gradient(135deg,#5c3a17,#a9712f);}
+  .rec .label{display:inline-block;background:rgba(255,255,255,.2);font-size:12px;font-weight:800;
+              padding:4px 12px;border-radius:999px;letter-spacing:.4px;}
+  .rec .head h3{margin:12px 0 4px;font-size:18px;line-height:1.35;}
+  .rec .head .loc{font-size:12.5px;color:#eeddca;}
+  .rec .scorebox{display:flex;align-items:baseline;gap:6px;margin-top:14px;}
+  .rec .scorebox .big{font-size:32px;font-weight:800;}
+  .rec .scorebox .of{font-size:13px;color:#eed2b6;}
+  .subscores{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .ss{font-size:10.5px;background:rgba(255,255,255,.15);padding:3px 8px;border-radius:6px;color:#eaf1fb;}
+  .recmeta{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:13px;color:#f3e3d0;font-weight:600;}
+  .rec .body{padding:18px 20px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .recbadges{display:flex;flex-wrap:wrap;gap:7px;}
+  .fbadge{font-size:11.5px;font-weight:700;background:var(--blue-soft);color:#a4521a;
+          border:1px solid #f1dcc4;border-radius:999px;padding:4px 11px;}
+  .why{background:var(--blue-soft);border-left:4px solid var(--blue);border-radius:10px;padding:12px 14px;}
+  .why h5{margin:0 0 5px;font-size:12.5px;color:var(--blue);font-weight:800;}
+  .why p{margin:0;font-size:14px;color:var(--navy);font-weight:600;}
+  .blk h5{margin:0 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;}
+  .blk ul{margin:0;padding-left:18px;font-size:13.5px;}
+  .blk ul.cons li{color:var(--amber);}
+  .rec .foot{padding:16px 20px;border-top:1px solid var(--line);background:#fbf6ef;}
+  .rec .foot .fnote{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .recbtns{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ---------- Buttons ---------- */
+  .btn{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:8px 13px;
+       border-radius:9px;text-decoration:none;border:1px solid var(--line);color:var(--navy2);background:#fff;}
+  .btn:hover{background:var(--blue-soft);border-color:var(--blue);}
+  .btn.solid{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn.solid:hover{filter:brightness(1.08);background:var(--blue);}
+  .btn.disabled{color:#aab2bd;border-color:#eef0f3;pointer-events:none;background:#f7f8fa;}
+  .btn.sm{font-size:11.5px;padding:5px 10px;}
+  /* equal-size evidence buttons in the Top 10 table */
+  .evidence-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start;}
+  .evidence-actions .btn{width:86px;min-height:42px;justify-content:center;text-align:center;white-space:nowrap;}
+
+  /* ---------- Tables ---------- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:#fff;}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;}
+  th,td{padding:13px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle;}
+  thead th{background:var(--navy);color:#fff;font-weight:600;font-size:12px;white-space:nowrap;}
+  tbody tr.main:nth-child(4n+1){background:#fbf6ef;}
+  tbody tr.main:hover{background:var(--blue-soft);}
+  td.rname{min-width:230px;}
+  td.rname b{color:var(--navy);}
+  .rankbubble{display:inline-flex;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;
+              font-weight:800;color:#fff;background:var(--navy2);font-size:13px;}
+  .rankbubble.r1{background:linear-gradient(135deg,#b8860b,#e0aa2a);}
+  .rankbubble.r2{background:linear-gradient(135deg,#6b7888,#9aa6b2);}
+  .rankbubble.r3{background:linear-gradient(135deg,#a9712f,#cd7f32);}
+  tr.main.top1 td{background:#fff6e6;}
+  tr.main.top2 td{background:#f7f1e8;}
+  tr.main.top3 td{background:#fbeede;}
+  .areatag{font-size:11px;padding:3px 9px;border-radius:6px;background:#f3ebde;color:var(--navy2);font-weight:700;white-space:nowrap;}
+  .totalpill{display:inline-block;font-weight:800;color:#fff;background:var(--navy);padding:5px 11px;border-radius:9px;font-size:14px;}
+  tr.main.top1 .totalpill{background:linear-gradient(135deg,#b8860b,#e0aa2a);}
+  tr.main.top2 .totalpill{background:linear-gradient(135deg,#6b7888,#9aa6b2);}
+  tr.main.top3 .totalpill{background:linear-gradient(135deg,#a9712f,#cd7f32);}
+  .exp{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:11.5px;
+       padding:4px 9px;color:var(--blue);font-weight:600;margin-top:7px;}
+  .exp:hover{background:var(--blue-soft);}
+  tr.break{display:none;}
+  tr.break.open{display:table-row;}
+  tr.break td{background:#faf4ea;}
+  .breakgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 22px;max-width:760px;}
+  .brow{font-size:12.5px;}
+  .brow .bl{display:flex;justify-content:space-between;margin-bottom:4px;color:var(--muted);font-weight:600;}
+  .brow .bl b{color:var(--navy);}
+  .btrack{height:7px;background:#ece1d4;border-radius:4px;overflow:hidden;}
+  .bfill{height:100%;background:var(--blue);border-radius:4px;}
+  .breason{margin-top:14px;font-size:13px;color:var(--ink);}
+  .breason b{color:var(--navy);}
+
+  /* ---------- Scoring table ---------- */
+  table.score th,table.score td{white-space:normal;}
+  .bar{height:8px;border-radius:4px;background:var(--blue);}
+
+  /* ---------- Pipeline ---------- */
+  .pipe{display:flex;flex-wrap:wrap;gap:10px;}
+  .step{flex:1 1 130px;background:var(--white);border:1px solid var(--line);border-radius:12px;
+        padding:15px;box-shadow:var(--shadow);}
+  .step .si{width:30px;height:30px;border-radius:8px;background:var(--blue-soft);color:var(--blue);
+            display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:9px;}
+  .step h4{margin:0 0 4px;font-size:14px;color:var(--navy);}
+  .step p{margin:0;font-size:12.5px;color:var(--muted);}
+  .step.live{border-color:var(--green);background:#f3fbf6;}
+  .step.live .si{background:#d7f0e0;color:var(--green);}
+
+  /* ---------- Tools / sources ---------- */
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+  .tool{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .tool h4{margin:0 0 5px;color:var(--navy);font-size:15px;}
+  .tool p{margin:0;color:var(--muted);font-size:13.5px;}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;
+        background:var(--blue-soft);color:var(--blue);margin-bottom:9px;}
+  .pill.green{background:#e6f4ea;color:var(--green);}
+
+  /* ---------- Live bar + Ask box ---------- */
+  .livebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--navy3);color:#f0e2d2;
+           border-radius:12px;padding:12px 18px;font-size:13px;margin-bottom:18px;}
+  .livebar .seg{display:flex;align-items:center;gap:7px;}
+  .livebar .seg+.seg{border-left:1px solid rgba(255,255,255,.18);padding-left:12px;}
+  .livebar b{color:#fff;}
+  .dot{width:9px;height:9px;border-radius:50%;background:#22c55e;animation:pulse 1.8s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 9px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .askbox{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow);}
+  .askrow{display:flex;gap:10px;flex-wrap:wrap;}
+  .askrow input{flex:1;min-width:220px;padding:13px 15px;border:1px solid var(--line);border-radius:11px;font-size:14px;}
+  .askrow input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+  .askrow button{background:var(--blue);color:#fff;border:0;padding:13px 24px;border-radius:11px;font-weight:700;
+                 cursor:pointer;font-size:14px;}
+  .askrow button:disabled{opacity:.55;cursor:not-allowed;}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .qchip{font-size:12.5px;background:#f6efe5;border:1px solid var(--line);border-radius:999px;padding:6px 13px;
+         cursor:pointer;color:var(--navy2);}
+  .qchip:hover{background:var(--blue-soft);border-color:var(--blue);}
+
+  /* ---------- Area filter ---------- */
+  .afbar{display:flex;gap:9px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+  .afbtn{flex:0 0 auto;cursor:pointer;font-size:13.5px;font-weight:700;white-space:nowrap;
+         padding:10px 16px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--navy2);}
+  .afbtn:hover{border-color:var(--blue);background:var(--blue-soft);}
+  .afbtn.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3);}
+  .afshow{margin-top:12px;font-size:13px;color:var(--muted);}
+  .afshow b{color:var(--navy);}
+
+  /* ---------- All Restaurant Dataset (self-contained) ---------- */
+  .dsbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px;
+         background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);}
+  .dsbar .field{display:flex;flex-direction:column;gap:4px;}
+  .dsbar label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.2px;}
+  .dsbar select,.dsbar input{padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;
+                             background:#fff;color:var(--ink);min-width:140px;}
+  .dsbar input.dssearch{min-width:190px;}
+  .dsbar select:focus,.dsbar input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+  .dsreset{align-self:flex-end;cursor:pointer;}
+  .dscount{font-size:13px;color:var(--muted);margin:0 0 12px 2px;}
+  .dscount b{color:var(--navy);}
+  tr.dsdetail{display:none;}
+  tr.dsdetail.open{display:table-row;}
+  tr.dsdetail td{background:#faf4ea;}
+  .dgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 26px;}
+  .dgrid .dk{font-size:11.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+  .dgrid .dv{font-size:13px;color:var(--ink);}
+  .dgrid ul{margin:4px 0 0;padding-left:18px;font-size:13px;}
+  .dgrid ul.cons li{color:var(--amber);}
+  .dsactions{display:flex;flex-direction:column;gap:6px;align-items:stretch;min-width:104px;}
+  .dsactions .btn{justify-content:center;white-space:nowrap;}
+  @media(max-width:560px){ .dgrid{grid-template-columns:1fr;} .dsbar .field,.dsbar select,.dsbar input{width:100%;} }
+  #askAnswer{margin-top:18px;}
+  .ans-meta{font-size:12px;color:var(--muted);margin-top:10px;}
+  .minicards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px;}
+  .minicard{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fbf6ef;}
+  .minicard b{color:var(--navy);font-size:13.5px;}
+  .err{color:var(--red);background:#fdecea;border:1px solid #f5c6c0;padding:13px;border-radius:11px;font-size:13.5px;}
+  .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#2a1810;color:#f0dcc6;
+        padding:2px 7px;border-radius:5px;word-break:break-all;}
+
+  /* ---------- Evidence cards ---------- */
+  .evgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  .evcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .evcard .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .evcard h4{margin:0;color:var(--navy);font-size:15.5px;}
+  .sbadge{font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;white-space:nowrap;}
+  .badge-ok{background:#e6f4ea;color:var(--green);}
+  .badge-done{background:#fbeede;color:var(--blue);}
+  .badge-todo{background:#fdebd0;color:var(--amber);}
+  .evcard p{margin:0 0 10px;font-size:13.5px;color:var(--ink);}
+  .evcard .wf{font-size:12px;color:var(--muted);margin:0 0 10px;}
+  .evcard .files a{margin-right:6px;}
+  .todo{color:var(--amber);font-weight:700;}
+
+  /* ---------- Notes ---------- */
+  .notes{background:#fffaf0;border:1px solid #f0e2c0;border-radius:14px;padding:18px 18px 18px 20px;}
+  .notes ul{margin:0;padding-left:18px;}
+  .notes li{margin-bottom:8px;}
+  .needv{color:var(--amber);font-style:italic;font-size:12px;}
+  footer{padding:28px 0 56px;color:var(--muted);font-size:12.5px;text-align:center;}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:980px){
+    .cards{grid-template-columns:repeat(2,1fr);}
+    .reccards{grid-template-columns:1fr;}
+    .hero-card{grid-template-columns:1fr;}
+    .ring{margin:4px auto 0;}
+    .evgrid{grid-template-columns:1fr;}
+    .breakgrid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:560px){
+    .cards{grid-template-columns:1fr;}
+    header.top h1{font-size:22px;}
+    .hero-card h3{font-size:22px;}
+    .breakgrid{grid-template-columns:1fr;}
+    .nav .live-mini{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== HEADER ===================== -->
+<header class="top">
+  <div class="wrap">
+    <h1>🍽️ AI Restaurant Finder for Team Dinner</h1>
+    <div class="sub">Decision dashboard — ค้นหา วิเคราะห์ ให้คะแนน และแนะนำร้านสำหรับทีม 8–12 คน</div>
+    <div class="badgeline">
+      <span class="area-badge">สยาม</span><span class="area-badge">อารีย์</span>
+      <span class="area-badge">ทองหล่อ</span><span class="area-badge">อโศก</span>
+      <span class="area-badge">พร้อมพงษ์</span>
+    </div>
+    <div class="meta">
+      <span><b>Project:</b> AI Restaurant Finder for Team Dinner</span>
+      <span><b>วันที่ทำ:</b> 6 มิถุนายน 2026</span>
+      <span><b>ผู้เข้าสอบ:</b> สุวนันท์ บุญแตง</span>
+      <span id="dataModeBadge" class="dmbadge">Data mode: Embedded fallback</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== STICKY NAV ===================== -->
+<nav class="nav">
+  <div class="inner">
+    <a href="#objective">🎯 เป้าหมาย</a>
+    <a href="#areafilter">📍 เลือกย่าน</a>
+    <a href="#summary">📊 ภาพรวม</a>
+    <a href="#top3">🍽️ ร้านแนะนำ</a>
+    <a href="#askbox">💬 ถามข้อมูลร้าน</a>
+    <a href="#top10">🏆 อันดับร้าน</a>
+    <a href="#all-dataset">🍱 ร้านทั้งหมด</a>
+    <a href="#workflow">⚙️ วิธีทำงาน</a>
+    <a href="#evidence">🔗 หลักฐานข้อมูล</a>
+    <span class="live-mini"><span class="dot"></span>LIVE · n8n Connected</span>
+  </div>
+</nav>
+
+<!-- ===================== HERO / FINAL RECOMMENDATION SNAPSHOT ===================== -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Decision Summary</div>
+    <h2 class="htitle" id="heroHeadline"><!-- rendered from data --></h2>
+    <div class="hero-card" id="heroCard"><!-- rendered from data --></div>
+    <div class="hero-btns">
+      <a class="hbtn ghost" href="#top3">🍽️ ดูร้านแนะนำ</a>
+      <a class="hbtn ghost" href="#top10">🏆 ดูอันดับร้านทั้งหมด</a>
+      <a class="hbtn primary" href="#askbox">💬 ถามข้อมูลร้าน</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ===================== OBJECTIVE ===================== -->
+<section id="objective" class="sec">
+  <h2><span class="n">🎯</span> Objective</h2>
+  <p class="lead">เป้าหมายของ workflow และคำถามหลักที่ต้องตอบ</p>
+  <div class="tool" style="border-left:4px solid var(--blue);">
+    <p style="margin:0;font-size:15px;color:var(--ink);">
+      <b>Objective</b> ของรายงานนี้คือสร้าง workflow ที่ใช้ข้อมูลจริงและตรวจสอบย้อนกลับได้ เพื่อ
+      <b>ค้นหา วิเคราะห์ ให้คะแนน และแนะนำ</b>ร้านอาหารที่เหมาะสำหรับมื้อทีม <b>8–12 คน</b>
+      ในพื้นที่ <b>สยาม, อารีย์, ทองหล่อ, อโศก และพร้อมพงษ์</b> โดยใช้
+      <b>Apify / Google Maps</b> เป็นแหล่งข้อมูลหลัก, แหล่งข้อมูลที่ 2 สำหรับตรวจสอบ,
+      <b>Google Sheets</b> สำหรับจัดเก็บและให้คะแนน, <b>AI</b> สำหรับ clean / analyze / recommend
+      และ <b>n8n</b> สำหรับเชื่อม Dataset Ask Box กับข้อมูล Google Sheets CSV แบบ live
+      เพื่อช่วยตัดสินใจเลือกร้านอันดับ <b>1–3</b> ได้จริง
+    </p>
+  </div>
+</section>
+
+<!-- ===================== AREA FILTER ===================== -->
+<section id="areafilter" class="sec">
+  <h2><span class="n">📍</span> เลือกย่านที่อยากไป</h2>
+  <p class="lead">กรองร้านอาหารตามย่านที่ทีมสะดวก เพื่อดูภาพรวม ร้านแนะนำ อันดับร้าน และการเปรียบเทียบจากข้อมูลชุดเดิม</p>
+  <div class="afbar" id="areaFilterBtns"><!-- buttons rendered from data --></div>
+  <div class="afshow" id="areaShowing"></div>
+</section>
+
+<!-- ===================== 1. EXECUTIVE SUMMARY ===================== -->
+<section id="summary" class="sec">
+  <h2><span class="n">1</span> Executive Summary</h2>
+  <p class="lead">วิเคราะห์ร้านอาหารสำหรับมื้อทีม <b>8–12 คน</b> ใน 5 ย่าน ด้วยข้อมูลจริงจาก <b>Apify / Google Maps</b>
+     + แหล่งข้อมูลที่ 2 (Wongnai / Tripadvisor) ให้คะแนนด้วย <b>Scoring Model 100 คะแนน</b> แล้วคัด Top 10 และ Top 3.</p>
+  <div class="datastatus" id="dataStatus"></div>
+  <div class="cards" id="summaryCards"></div>
+</section>
+
+<!-- ===================== 2. TOP 3 RECOMMENDATION ===================== -->
+<section id="top3" class="sec">
+  <h2><span class="n">2</span> Top 3 Recommendation</h2>
+  <p class="lead">3 อันดับแรกจาก Top 10 — ตัวเลือกที่แนะนำสำหรับมื้อทีม (ข้อมูลและคะแนนจริงจาก dataset)</p>
+  <div class="reccards" id="recCards"></div>
+</section>
+
+<!-- ===================== 3. DATASET ASK BOX — LIVE n8n ===================== -->
+<section id="askbox" class="sec">
+  <h2><span class="n">3</span> 💬 ถามผู้ช่วยเลือกร้าน</h2>
+  <p class="lead">พิมพ์คำถามเกี่ยวกับร้านได้เลย ผู้ช่วยจะตอบจาก<b>ข้อมูลจริงใน dataset</b> (Top 10 Ranking + Top 3 Recommendation)
+     ที่ดึงผ่าน n8n จาก Google Sheets — ไม่ใช่คำตอบลอย ๆ</p>
+  <div class="livebar">
+    <span class="seg"><span class="dot"></span><b>LIVE</b></span>
+    <span class="seg">n8n Production Webhook Connected</span>
+    <span class="seg">Source: <b>Google Sheets CSV</b></span>
+    <span class="seg">Last response shown after asking</span>
+  </div>
+  <div class="askbox">
+    <div class="askrow">
+      <input id="askInput" type="text" placeholder="ร้านไหนเหมาะกับทีม 8–12 คนในอโศก?" />
+      <button id="askBtn">🔍 ถามเลย</button>
+    </div>
+    <div class="chips" id="qChips"></div>
+    <div id="askAnswer"></div>
+    <p class="ans-meta">เรียกแบบ GET: <span class="code">GET ?question=...</span> → n8n ดึง Google Sheets CSV แล้วตอบ <span class="code">answer</span> + <span class="code">matched_restaurants</span></p>
+  </div>
+</section>
+
+<!-- ===================== 4. TOP 10 RANKING ===================== -->
+<section id="top10" class="sec">
+  <h2><span class="n">4</span> <span id="top10Title">Top 10 Ranking</span></h2>
+  <p class="lead">เรียงตาม Total Score จากมากไปน้อย · กด <b>“ดูคะแนนย่อย”</b> ในแต่ละแถวเพื่อดู score breakdown 6 มิติ + เหตุผล</p>
+  <div class="tablewrap">
+    <table id="top10Table">
+      <thead><tr>
+        <th>Rank</th><th>Restaurant</th><th>📍 Area</th><th>🍴 Food Type</th><th>⭐ Rating</th>
+        <th>💬 Reviews</th><th>฿ Price</th><th>👥 Group Fit</th><th>🏆 Total</th><th>🔗 Evidence</th>
+      </tr></thead>
+      <tbody id="top10Body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== 5. RESTAURANT COMPARISON ===================== -->
+<section id="compare" class="sec">
+  <h2><span class="n">5</span> <span id="compareTitle">Restaurant Comparison</span></h2>
+  <p class="lead" id="compareLead">เปรียบเทียบจุดเด่น ข้อควรระวัง และคำแนะนำของร้านที่อยู่ในผลจัดอันดับ</p>
+  <div class="tablewrap">
+    <table id="compareTable">
+      <thead><tr><th>Restaurant</th><th>Best For</th><th>Strengths</th><th>Trade-off / Risk</th><th>Final Recommendation</th></tr></thead>
+      <tbody id="compareBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== ALL RESTAURANT DATASET (self-contained filter) ===================== -->
+<section id="all-dataset" class="sec">
+  <h2><span class="n">🍱</span> สำรวจร้านทั้งหมด 25 ร้าน</h2>
+  <p class="lead">รวมร้านอาหารทั้งหมดที่คัดมาใน 5 ย่าน พร้อมตัวกรองตามย่าน ประเภทอาหาร ราคา
+     และความเหมาะกับทีม</p>
+
+  <div class="dsbar">
+    <div class="field"><label>🔎 ค้นหา</label><input id="dsSearch" class="dssearch" type="text" placeholder="ค้นหาชื่อร้าน..."></div>
+    <div class="field"><label>📍 ย่าน</label><select id="dsArea"></select></div>
+    <div class="field"><label>🍽️ ประเภทอาหาร</label><select id="dsFood"></select></div>
+    <div class="field"><label>฿ ราคา</label><select id="dsPrice"></select></div>
+    <div class="field"><label>👥 ความเหมาะกับทีม</label><select id="dsGroup"></select></div>
+    <button id="dsReset" class="btn dsreset">↺ ล้างตัวกรอง</button>
+  </div>
+  <div class="dscount" id="dsCount"></div>
+
+  <div class="tablewrap">
+    <table id="dsTable">
+      <thead><tr>
+        <th>Restaurant</th><th>📍 Area</th><th>🍴 Food Type</th><th>⭐ Rating</th><th>💬 Reviews</th>
+        <th>฿ Price</th><th>👥 Group Fit</th><th>🏆 Total</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="dsBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== 6. SCORING CRITERIA ===================== -->
+<section id="scoring" class="sec soft">
+  <h2><span class="n">6</span> Scoring Criteria (100 คะแนน)</h2>
+  <p class="lead">น้ำหนักคงที่ — ทุกร้านถูกให้คะแนนด้วยเกณฑ์เดียวกันจากข้อมูลจริง</p>
+  <div class="tablewrap">
+    <table class="score">
+      <thead><tr><th>#</th><th>เกณฑ์</th><th>น้ำหนัก</th><th>วัดจากอะไร</th><th style="width:140px;">สัดส่วน</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><b>Rating &amp; Review Quality</b></td><td>25</td><td>ดาวเรตติ้ง + ขนาดฐานรีวิว (ความน่าเชื่อถือ)</td><td><div class="bar" style="width:100%"></div></td></tr>
+        <tr><td>2</td><td><b>Group Suitability</b></td><td>20</td><td>รองรับโต๊ะ 8–12 คน / มีพื้นที่กลุ่ม</td><td><div class="bar" style="width:80%"></div></td></tr>
+        <tr><td>3</td><td><b>Price Suitability</b></td><td>15</td><td>ราคาต่อหัวเหมาะกับมื้อทีม (mid-range ได้เปรียบ)</td><td><div class="bar" style="width:60%"></div></td></tr>
+        <tr><td>4</td><td><b>Travel Convenience</b></td><td>15</td><td>ระยะเดินจาก BTS/MRT ที่ใกล้ที่สุด</td><td><div class="bar" style="width:60%"></div></td></tr>
+        <tr><td>5</td><td><b>Data Completeness</b></td><td>15</td><td>ความครบ/ความมั่นใจของข้อมูล (จุดที่ต้องยืนยัน)</td><td><div class="bar" style="width:60%"></div></td></tr>
+        <tr><td>6</td><td><b>Uniqueness / Experience</b></td><td>10</td><td>เอกลักษณ์/ประสบการณ์ (Michelin, rooftop, concept)</td><td><div class="bar" style="width:40%"></div></td></tr>
+        <tr style="background:var(--blue-soft);font-weight:700;"><td></td><td>Total</td><td>100</td><td colspan="2">ผลรวมทั้ง 6 มิติ — จัดอันดับจากมากไปน้อย</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== 7. WORKFLOW OVERVIEW ===================== -->
+<section id="workflow" class="sec soft">
+  <h2><span class="n">7</span> Workflow Overview</h2>
+  <p class="lead">Pipeline จากการตั้งโจทย์ → เก็บข้อมูล → ทำความสะอาด → ให้คะแนน → automation → รายงาน</p>
+  <div class="pipe">
+    <div class="step"><div class="si">1</div><h4>Problem Framing</h4><p>นิยามโจทย์ทีม 8–12 คน, 5 ย่าน, เกณฑ์ตัดสินใจ</p></div>
+    <div class="step"><div class="si">2</div><h4>Apify Data Scraping</h4><p>ดึงข้อมูลร้านจาก Google Maps (rating, รีวิว, พิกัด)</p></div>
+    <div class="step"><div class="si">3</div><h4>Google Sheets DB</h4><p>เก็บ Raw / Clean / Scoring / Top 10 / Top 3</p></div>
+    <div class="step"><div class="si">4</div><h4>AI Cleaning &amp; Enrichment</h4><p>Claude/ChatGPT เติมราคา เวลา group-fit + ยืนยันแหล่งที่ 2</p></div>
+    <div class="step"><div class="si">5</div><h4>Scoring Model</h4><p>ให้คะแนน 100 คะแนน 6 มิติ จัดอันดับ</p></div>
+    <div class="step live"><div class="si">6</div><h4>n8n Automation</h4><p><b>Connected production webhook:</b> HTML Ask Box → n8n Webhook → Fetch Top 10 CSV → Fetch Top 3 CSV → Code JS → Respond to Webhook</p></div>
+    <div class="step live"><div class="si">7</div><h4>n8n Live Data API</h4><p><b>Live data sync:</b> HTML เรียก n8n Production Webhook เพื่อโหลด restaurantsData ล่าสุดจาก Google Sheets CSV แล้ว render Top 3, Top 10, Area Filter และ Restaurant Comparison</p></div>
+    <div class="step"><div class="si">8</div><h4>HTML Report</h4><p>รายงานหน้านี้ — ตัดสินใจได้จริง ตรวจย้อนกลับได้</p></div>
+  </div>
+</section>
+
+<!-- ===================== 7. TOOLS USED ===================== -->
+<section id="tools" class="sec soft">
+  <h2><span class="n">8</span> Tools Used</h2>
+  <p class="lead">เครื่องมือจริงที่ใช้ในแต่ละขั้นของ workflow</p>
+  <div class="grid2">
+    <div class="tool"><span class="pill">Scraping</span><h4>Apify</h4><p>เก็บข้อมูลร้านจาก Google Maps (Google Places crawler) — ชื่อ เรตติ้ง จำนวนรีวิว พิกัด</p></div>
+    <div class="tool"><span class="pill">Database</span><h4>Google Sheets</h4><p>ฐานข้อมูลหลัก: Raw Data, Clean Data, Scoring, Top 10 Ranking, Top 3 Recommendation</p></div>
+    <div class="tool"><span class="pill">AI</span><h4>Claude / ChatGPT</h4><p>ช่วย clean data, ทำ scoring, สรุป insight และเขียน recommendation</p></div>
+    <div class="tool"><span class="pill green">Automation · Live</span><h4>n8n</h4><p>n8n ใช้เป็น <b>live automation</b> สำหรับ Dataset Ask Box โดยรับคำถามจากหน้าเว็บผ่าน Production Webhook แล้วดึงข้อมูล Top 10 Ranking และ Top 3 Recommendation จาก Google Sheets CSV เพื่อตอบกลับจาก dataset</p></div>
+    <div class="tool"><span class="pill">Frontend</span><h4>HTML / CSS / JS</h4><p>Final report หน้าเดียว เปิดใน browser ได้จริง responsive</p></div>
+  </div>
+</section>
+
+<!-- ===================== 8. DATA SOURCES ===================== -->
+<section id="sources" class="sec soft">
+  <h2><span class="n">9</span> Data Sources</h2>
+  <p class="lead">ใช้อย่างน้อย 2 แหล่งข้อมูลต่อร้าน เพื่อ cross-check ความถูกต้อง</p>
+  <div class="grid2">
+    <div class="tool"><span class="pill">Primary</span><h4>Google Maps (via Apify)</h4>
+      <p>เรตติ้งและจำนวนรีวิวจริง + ลิงก์ Google Maps ของแต่ละร้าน (ดูคอลัมน์ Evidence ในตาราง Top 10)</p></div>
+    <div class="tool"><span class="pill">Secondary</span><h4>Wongnai / Tripadvisor</h4>
+      <p>ใช้เป็นแหล่งข้อมูลที่ 2 สำหรับยืนยันราคา เวลาเปิด-ปิด และความเหมาะกับกลุ่ม โดยแสดงเป็นปุ่ม “Review” ในตารางและการ์ด</p></div>
+  </div>
+</section>
+
+<!-- ===================== 10. EVIDENCE ===================== -->
+<section id="evidence" class="sec soft">
+  <h2><span class="n">10</span> Evidence &amp; Reproducibility</h2>
+  <p class="lead">หลักฐานการทำงานจริงและความสามารถทำซ้ำได้</p>
+  <div class="evgrid">
+
+    <div class="evcard">
+      <div class="top"><h4>📊 Google Sheets</h4><span class="sbadge badge-done">Completed</span></div>
+      <p>ฐานข้อมูลหลัก มีแท็บ: Raw Data · Clean Data · Scoring · Top 10 Ranking · Top 3 Recommendation</p>
+      <p class="files">Google Sheets Link: <a href="https://docs.google.com/spreadsheets/d/1FB5oNKYWhug2g9Z1fL40sTZyCXomeaPZtnZ5IxdSn5Q/edit?usp=sharing" target="_blank" rel="noopener">Google Sheets (Raw · Clean · Scoring · Top 10 · Top 3)</a></p>
+    </div>
+
+    <div class="evcard">
+      <div class="top"><h4>🕷️ Apify Scraping</h4><span class="sbadge badge-done">Completed</span></div>
+      <p>เก็บข้อมูลร้านจาก Google Maps (Google Places crawler)</p>
+      <p class="files">Proof:
+        <a href="https://console.apify.com/view/runs/zmQli0BWtS9kYdZ36" target="_blank" rel="noopener">Apify run (console)</a> ·
+        <a href="dataset_crawler-google-places_2026-06-06_13-09-38-300.csv" target="_blank">dataset export (CSV)</a>
+      </p>
+    </div>
+
+    <div class="evcard">
+      <div class="top"><h4>⚙️ n8n Automation</h4><span class="sbadge badge-ok">● Connected</span></div>
+      <p><b>Status:</b> Connected production webhook</p>
+      <p class="wf"><b>Workflow:</b> Webhook Ask Box → Fetch Top 10 CSV → Fetch Top 3 CSV → Code in JavaScript → Respond to Webhook</p>
+      <p class="files">Proof:
+        <a href="n8n_askbox_workflow_success.png" target="_blank">n8n_askbox_workflow_success.png</a>
+      </p>
+    </div>
+
+    <div class="evcard">
+      <div class="top"><h4>🔄 n8n Live Data API</h4><span class="sbadge badge-ok">● Connected</span></div>
+      <p><b>Status:</b> Production URL Verified</p>
+      <p class="wf"><b>Workflow:</b> Webhook → Fetch Scoring CSV → Parse CSV to Report JSON → Respond to Webhook</p>
+      <p class="files">Proof:
+        <a href="n8n_live_data_api_json_success.png" target="_blank">n8n_live_data_api_json_success.png</a>
+      </p>
+    </div>
+
+    <div class="evcard">
+      <div class="top"><h4>📝 Prompt History</h4><span class="sbadge badge-done">Completed</span></div>
+      <p>บันทึก prompt ทั้งหมดที่ใช้ในการ clean / score / recommend / HTML / n8n / QA</p>
+      <p class="files">File: <a href="prompt_history_restaurant.md" target="_blank" rel="noopener">prompt_history_restaurant.md</a></p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== 11. NOTES / LIMITATIONS ===================== -->
+<section id="notes" class="sec">
+  <h2><span class="n">11</span> Notes / Limitations</h2>
+  <div class="notes">
+    <ul>
+      <li>ข้อมูลบางส่วน เช่น <b>ราคา เวลาเปิด-ปิด และการรองรับโต๊ะ 8–12 คน</b> อาจต้องยืนยันกับร้านก่อนจองจริง</li>
+      <li>ฟิลด์ที่ข้อมูลไม่ชัดเจนจะแสดงเป็น <span class="needv">Need verification</span></li>
+      <li>Final decision ควรตรวจสอบ <b>เวลาเปิด-ปิด ราคา และการจองโต๊ะ</b> กับร้านอีกครั้งก่อนยืนยัน</li>
+      <li>คะแนนคำนวณด้วย Scoring Model 100 คะแนนที่นิยามไว้ จากชุดข้อมูลจริงที่ clean แล้ว (Apify → Google Sheets) ด้วยเกณฑ์เดียวกันทุกร้าน</li>
+      <li>Dataset Ask Box ทำงานแบบ <b>live</b> ผ่าน n8n Production Webhook — การตอบขึ้นกับข้อมูลใน Google Sheets CSV</li>
+    </ul>
+  </div>
+</section>
+
+</div><!-- /wrap -->
+
+<footer>
+  AI Restaurant Finder for Team Dinner · ผู้เข้าสอบ: สุวนันท์ บุญแตง · 6 มิถุนายน 2026 ·
+  ข้อมูลจริงจาก Apify / Google Maps + แหล่งข้อมูลที่ 2 · Scoring Model 100 คะแนน · n8n Live Automation
+</footer>
+
+<script>
+/* =========================================================
+   REAL DATA — embedded from Google Sheets / Apify pipeline.
+   Sorted by total_score desc (rank assigned in data).
+   Scores / Top 3 / restaurant list are NOT modified by the UI.
+   ========================================================= */
+/* embedded fallback dataset — kept intact; may be swapped by live n8n data */
+let restaurantsData = [
+  {
+    "restaurant_name": "Indulge Restaurant & Cocktail Bar",
+    "area": "พร้อมพงษ์",
+    "area_raw": "Phrom Phong / Sukhumvit",
+    "food_type": "Thai / Fusion",
+    "rating": 4.7,
+    "review_count": 3693,
+    "price_range": "$$ (251–500฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "403-403/1, 407 407/1 ถ. สุขุมวิท, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก / MRT สุขุมวิท ~3–5 นาที (สุขุมวิท 21–23, สกายวอล์ค)",
+    "opening_hours": "ทุกวัน 06:00–23:30",
+    "rating_review_score": 24.1,
+    "group_score": 19,
+    "price_score": 15,
+    "travel_score": 13,
+    "data_completeness_score": 15,
+    "uniqueness_score": 9,
+    "total_score": 95.1,
+    "reason": "เรตติ้ง 4.7★ จาก 3,693 รีวิว, Thai / Fusion, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 3,693 รีวิว, Thai / Fusion, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★",
+      "ฐานรีวิวใหญ่ (3,693 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านพร้อมพงษ์ • Thai / Fusion",
+    "why_recommended": "คะแนนรวม 95.1/100 — เรตติ้ง 4.7★ จาก 3,693 รีวิว, Thai / Fusion, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.7★ · ฐานรีวิวใหญ่ (3,693 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — จุดแข็งครบทั้งรีวิว กลุ่ม ราคา และการเดินทาง. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Indulge%20Restaurant%20%26%20Cocktail%20Bar&query_place_id=ChIJvcw2HuOe4jARNkjje3ATS18",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d6510163-Reviews-Indulge_Fusion_Food_Cocktail_Bar-Bangkok.html",
+    "rank": 1
+  },
+  {
+    "restaurant_name": "White Flower Factory - ครัวดอกไม้ขาว",
+    "area": "สยาม",
+    "area_raw": "Siam Square",
+    "food_type": "Thai / Fusion",
+    "rating": 4.6,
+    "review_count": 1521,
+    "price_range": "$$ (251–500฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "Unit #SS 4009, 388 ถ. พระรามที่ 1, เขตปทุมวัน, กรุงเทพฯ",
+    "travel_note": "BTS สยาม ~1–2 นาที (เชื่อม Siam Square One)",
+    "opening_hours": "ทุกวัน 10:00–22:00",
+    "rating_review_score": 21.8,
+    "group_score": 19,
+    "price_score": 15,
+    "travel_score": 15,
+    "data_completeness_score": 15,
+    "uniqueness_score": 9,
+    "total_score": 94.8,
+    "reason": "เรตติ้ง 4.6★ จาก 1,521 รีวิว, Thai / Fusion, BTS สยาม ~1–2 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.6★ จาก 1,521 รีวิว, Thai / Fusion, BTS สยาม ~1–2 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "ฐานรีวิวใหญ่ (1,521 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านสยาม • Thai / Fusion",
+    "why_recommended": "คะแนนรวม 94.8/100 — เรตติ้ง 4.6★ จาก 1,521 รีวิว, Thai / Fusion, BTS สยาม ~1–2 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "ฐานรีวิวใหญ่ (1,521 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — จุดแข็งครบทั้งรีวิว กลุ่ม ราคา และการเดินทาง. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=White%20Flower%20Factory%20-%20%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%A7%E0%B8%94%E0%B8%AD%E0%B8%81%E0%B9%84%E0%B8%A1%E0%B9%89%E0%B8%82%E0%B8%B2%E0%B8%A7&query_place_id=ChIJ937RdtKe4jARPRuzBAQLNxc",
+    "second_source_url": "https://th.tripadvisor.com/Restaurant_Review-g293916-d7310938-Reviews-White_Flower_Factory_Siam_Square_One-Bangkok.html",
+    "rank": 2
+  },
+  {
+    "restaurant_name": "Bangkok Heightz Rooftop (Restaurant & Bar 39th floor)",
+    "area": "อโศก",
+    "area_raw": "Asoke",
+    "food_type": "Thai (Rooftop)",
+    "rating": 4.8,
+    "review_count": 2906,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "413 ชั้น 39 โรงแรม เดอะ คอนทิเนนท์ ถ. สุขุมวิท, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก / MRT สุขุมวิท ~2–3 นาที (แยกอโศก)",
+    "opening_hours": "ทุกวัน 17:00–02:00",
+    "rating_review_score": 23.4,
+    "group_score": 19,
+    "price_score": 12,
+    "travel_score": 15,
+    "data_completeness_score": 15,
+    "uniqueness_score": 9,
+    "total_score": 93.4,
+    "reason": "เรตติ้ง 4.8★ จาก 2,906 รีวิว, Thai (Rooftop), BTS อโศก / MRT สุขุมวิท ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 2,906 รีวิว, Thai (Rooftop), BTS อโศก / MRT สุขุมวิท ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ฐานรีวิวใหญ่ (2,906 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอโศก • Thai (Rooftop)",
+    "why_recommended": "คะแนนรวม 93.4/100 — เรตติ้ง 4.8★ จาก 2,906 รีวิว, Thai (Rooftop), BTS อโศก / MRT สุขุมวิท ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ฐานรีวิวใหญ่ (2,906 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — จุดแข็งครบทั้งรีวิว กลุ่ม ราคา และการเดินทาง. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Bangkok%20Heightz%20Rooftop%20(Restaurant%20%26%20Bar%2039th%20floor)&query_place_id=ChIJ_QYAIOOe4jARxBtLupRX4u4",
+    "second_source_url": "https://www.wongnai.com/restaurants/bangkokheightz",
+    "rank": 3
+  },
+  {
+    "restaurant_name": "โค ลิมิเต็ด",
+    "area": "พร้อมพงษ์",
+    "area_raw": "Phrom Phong / Sukhumvit",
+    "food_type": "Thai (Street food)",
+    "rating": 4.7,
+    "review_count": 2097,
+    "price_range": "$$ (251–500฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "628 ห้อง GM05 ถ. สุขุมวิท, เขตคลองเตย, กรุงเทพฯ",
+    "travel_note": "BTS พร้อมพงษ์ ~2–3 นาที (เชื่อม EmSphere)",
+    "opening_hours": "ตามห้าง EmSphere ~10:00–22:00",
+    "rating_review_score": 23.1,
+    "group_score": 19,
+    "price_score": 15,
+    "travel_score": 15,
+    "data_completeness_score": 15,
+    "uniqueness_score": 6,
+    "total_score": 93.1,
+    "reason": "เรตติ้ง 4.7★ จาก 2,097 รีวิว, Thai (Street food), BTS พร้อมพงษ์ ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 2,097 รีวิว, Thai (Street food), BTS พร้อมพงษ์ ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★",
+      "ฐานรีวิวใหญ่ (2,097 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านพร้อมพงษ์ • Thai (Street food)",
+    "why_recommended": "คะแนนรวม 93.1/100 — เรตติ้ง 4.7★ จาก 2,097 รีวิว, Thai (Street food), BTS พร้อมพงษ์ ~2–3 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.7★ · ฐานรีวิวใหญ่ (2,097 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — จุดแข็งครบทั้งรีวิว กลุ่ม ราคา และการเดินทาง. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B9%82%E0%B8%84%20%E0%B8%A5%E0%B8%B4%E0%B8%A1%E0%B8%B4%E0%B9%80%E0%B8%95%E0%B9%87%E0%B8%94&query_place_id=ChIJ0b416lCf4jARd7O0x9wjoC4",
+    "second_source_url": "https://www.wongnai.com/restaurants/2574960Cc-co-limited-%E0%B9%80%E0%B8%AD%E0%B9%87%E0%B8%A1%E0%B8%AA%E0%B9%80%E0%B8%9F%E0%B8%B5%E0%B8%A2%E0%B8%A3%E0%B9%8C-emsphere",
+    "rank": 4
+  },
+  {
+    "restaurant_name": "Gigi Eatery Asoke",
+    "area": "อโศก",
+    "area_raw": "Asoke",
+    "food_type": "Italian / Cafe",
+    "rating": 4.8,
+    "review_count": 3365,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "28 ซอย สุขุมวิท 19, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก / MRT สุขุมวิท ~3–5 นาที (สุขุมวิท 19)",
+    "opening_hours": "ทุกวัน 08:00–24:00",
+    "rating_review_score": 24.4,
+    "group_score": 19,
+    "price_score": 12,
+    "travel_score": 13,
+    "data_completeness_score": 15,
+    "uniqueness_score": 7,
+    "total_score": 90.4,
+    "reason": "เรตติ้ง 4.8★ จาก 3,365 รีวิว, Italian / Cafe, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 3,365 รีวิว, Italian / Cafe, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ฐานรีวิวใหญ่ (3,365 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอโศก • Italian / Cafe",
+    "why_recommended": "คะแนนรวม 90.4/100 — เรตติ้ง 4.8★ จาก 3,365 รีวิว, Italian / Cafe, BTS อโศก / MRT สุขุมวิท ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ฐานรีวิวใหญ่ (3,365 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — จุดแข็งครบทั้งรีวิว กลุ่ม ราคา และการเดินทาง. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Gigi%20Eatery%20Asoke&query_place_id=ChIJw5WEJoqf4jARFC4PiDtFCzc",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d23970536-Reviews-Gigi_Cafe-Bangkok.html",
+    "rank": 5
+  },
+  {
+    "restaurant_name": "Jim Thompson, A Thai Restaurant",
+    "area": "สยาม",
+    "area_raw": "Siam Square",
+    "food_type": "Thai",
+    "rating": 4.8,
+    "review_count": 3634,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "6/1,6 2 ซ. เกษมสันต์ 2, เขตปทุมวัน, กรุงเทพฯ",
+    "travel_note": "BTS สนามกีฬาแห่งชาติ ~5 นาที (ซ.เกษมสันต์ 2)",
+    "opening_hours": "ยืนยันกับร้าน (โดยทั่วไป ~11:30–22:00)",
+    "rating_review_score": 24.4,
+    "group_score": 19,
+    "price_score": 12,
+    "travel_score": 13,
+    "data_completeness_score": 12,
+    "uniqueness_score": 9,
+    "total_score": 89.4,
+    "reason": "เรตติ้ง 4.8★ จาก 3,634 รีวิว, Thai, BTS สนามกีฬาแห่งชาติ ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 3,634 รีวิว, Thai, BTS สนามกีฬาแห่งชาติ ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ฐานรีวิวใหญ่ (3,634 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านสยาม • Thai",
+    "why_recommended": "คะแนนรวม 89.4/100 — เรตติ้ง 4.8★ จาก 3,634 รีวิว, Thai, BTS สนามกีฬาแห่งชาติ ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ฐานรีวิวใหญ่ (3,634 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน สยาม. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Jim%20Thompson%2C%20A%20Thai%20Restaurant&query_place_id=ChIJKVqr3I6Z4jARPi6t_zvvL1A",
+    "second_source_url": "https://www.wongnai.com/restaurants/thompson-rama1",
+    "rank": 6
+  },
+  {
+    "restaurant_name": "โค-ร-ต KORATA (Siam Square)",
+    "area": "สยาม",
+    "area_raw": "Siam Square",
+    "food_type": "Thai",
+    "rating": 4.9,
+    "review_count": 2543,
+    "price_range": "$$ (251–500฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "สยามสแควร์ ซอย 3, เขตปทุมวัน, กรุงเทพฯ",
+    "travel_note": "BTS สยาม ~5 นาที (สยามสแควร์ ซ.3)",
+    "opening_hours": "ทุกวัน ~11:30–21:30 (โดยประมาณ)",
+    "rating_review_score": 23.7,
+    "group_score": 19,
+    "price_score": 15,
+    "travel_score": 13,
+    "data_completeness_score": 12,
+    "uniqueness_score": 6,
+    "total_score": 88.7,
+    "reason": "เรตติ้ง 4.9★ จาก 2,543 รีวิว, Thai, BTS สยาม ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.9★ จาก 2,543 รีวิว, Thai, BTS สยาม ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.9★",
+      "ฐานรีวิวใหญ่ (2,543 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านสยาม • Thai",
+    "why_recommended": "คะแนนรวม 88.7/100 — เรตติ้ง 4.9★ จาก 2,543 รีวิว, Thai, BTS สยาม ~5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.9★ · ฐานรีวิวใหญ่ (2,543 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่",
+    "trade_off_risk": "เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน สยาม. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B9%82%E0%B8%84-%E0%B8%A3-%E0%B8%95%20KORATA%20(Siam%20Square)&query_place_id=ChIJ0xYxXwCf4jARPtJNOp_WXm8",
+    "second_source_url": "https://www.wongnai.com/restaurants/2821791ur-%E0%B9%82%E0%B8%84-%E0%B8%A3-%E0%B8%95-korata-siam-square",
+    "rank": 7
+  },
+  {
+    "restaurant_name": "นาราไทย คูซีน",
+    "area": "อโศก",
+    "area_raw": "Asoke",
+    "food_type": "Thai",
+    "rating": 4.7,
+    "review_count": 1136,
+    "price_range": "$$ (~251–500฿/คน)",
+    "group_fit": "น่าจะรองรับได้",
+    "address": "Rm. 3054-55, Fl.3 Terminal 21, 88 ซอย สุขุมวิท 19, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก ~1–2 นาที (เชื่อม Terminal 21)",
+    "opening_hours": "ตามห้าง Terminal 21 ~10:00–22:00",
+    "rating_review_score": 22.1,
+    "group_score": 16,
+    "price_score": 15,
+    "travel_score": 15,
+    "data_completeness_score": 14,
+    "uniqueness_score": 6,
+    "total_score": 88.1,
+    "reason": "เรตติ้ง 4.7★ จาก 1,136 รีวิว, Thai, BTS อโศก ~1–2 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 1,136 รีวิว, Thai, BTS อโศก ~1–2 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★",
+      "ฐานรีวิวใหญ่ (1,136 รีวิว) น่าเชื่อถือ",
+      "เดินจาก BTS สะดวก",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอโศก • Thai",
+    "why_recommended": "คะแนนรวม 88.1/100 — เรตติ้ง 4.7★ จาก 1,136 รีวิว, Thai, BTS อโศก ~1–2 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "strengths": "คะแนนรีวิวสูง 4.7★ · ฐานรีวิวใหญ่ (1,136 รีวิว) น่าเชื่อถือ · เดินจาก BTS สะดวก · ราคากำลังดีสำหรับมื้อทีม",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อโศก. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B8%99%E0%B8%B2%E0%B8%A3%E0%B8%B2%E0%B9%84%E0%B8%97%E0%B8%A2%20%E0%B8%84%E0%B8%B9%E0%B8%8B%E0%B8%B5%E0%B8%99&query_place_id=ChIJ5UUPyu6f4jARzil2TMt0IZg",
+    "second_source_url": "https://th.tripadvisor.com/Restaurant_Review-g293916-d12948577-Reviews-Nara_Thai_Cuisine_Siam_Paragon-Bangkok.html",
+    "rank": 8
+  },
+  {
+    "restaurant_name": "Brooks brunch & bar Ari",
+    "area": "อารีย์",
+    "area_raw": "Ari",
+    "food_type": "Brunch / Cafe",
+    "rating": 4.8,
+    "review_count": 1771,
+    "price_range": "$$ (251–500฿; บางมื้อ 501–1,000฿)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "18 ซอย อารีย์ 4 ฝั่งเหนือ, เขตพญาไท, กรุงเทพฯ",
+    "travel_note": "BTS อารีย์ ~8–10 นาที (ซ.อารีย์ 4)",
+    "opening_hours": "All-day brunch→bar ~08:30–24:00 (ยืนยันสาขา Ari)",
+    "rating_review_score": 22.4,
+    "group_score": 19,
+    "price_score": 15,
+    "travel_score": 10,
+    "data_completeness_score": 12,
+    "uniqueness_score": 7,
+    "total_score": 85.4,
+    "reason": "เรตติ้ง 4.8★ จาก 1,771 รีวิว, Brunch / Cafe, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 1,771 รีวิว, Brunch / Cafe, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ฐานรีวิวใหญ่ (1,771 รีวิว) น่าเชื่อถือ",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอารีย์ • Brunch / Cafe",
+    "why_recommended": "คะแนนรวม 85.4/100 — เรตติ้ง 4.8★ จาก 1,771 รีวิว, Brunch / Cafe, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ฐานรีวิวใหญ่ (1,771 รีวิว) น่าเชื่อถือ · รองรับกลุ่มใหญ่/มีพื้นที่ · ราคากำลังดีสำหรับมื้อทีม",
+    "trade_off_risk": "เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อารีย์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Brooks%20brunch%20%26%20bar%20Ari&query_place_id=ChIJh4PTdWyd4jARLZPuo5nt_q4",
+    "second_source_url": "https://www.wongnai.com/restaurants/2929549qP-brook-s-brunch-and-bar-ari-%E0%B8%AD%E0%B8%B2%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B9%8C",
+    "rank": 9
+  },
+  {
+    "restaurant_name": "Supanniga Eating Room, Thonglor : ห้องทานข้าวสุพรรณิการ์ ทองหล่อ",
+    "area": "ทองหล่อ",
+    "area_raw": "Thonglor",
+    "food_type": "Thai (Michelin Plate)",
+    "rating": 4.4,
+    "review_count": 1729,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "160/11 ถ. ทองหล่อ, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ ~10–15 นาที (ทองหล่อ ซ.6–8)",
+    "opening_hours": "ทุกวัน 11:30–14:30, 17:30–23:30",
+    "rating_review_score": 21.2,
+    "group_score": 19,
+    "price_score": 12,
+    "travel_score": 7,
+    "data_completeness_score": 15,
+    "uniqueness_score": 10,
+    "total_score": 84.2,
+    "reason": "เรตติ้ง 4.4★ จาก 1,729 รีวิว, Thai (Michelin Plate), BTS ทองหล่อ ~10–15 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.4★ จาก 1,729 รีวิว, Thai (Michelin Plate), BTS ทองหล่อ ~10–15 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "ฐานรีวิวใหญ่ (1,729 รีวิว) น่าเชื่อถือ",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านทองหล่อ • Thai (Michelin Plate)",
+    "why_recommended": "คะแนนรวม 84.2/100 — เรตติ้ง 4.4★ จาก 1,729 รีวิว, Thai (Michelin Plate), BTS ทองหล่อ ~10–15 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "ฐานรีวิวใหญ่ (1,729 รีวิว) น่าเชื่อถือ · รองรับกลุ่มใหญ่/มีพื้นที่ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน ทองหล่อ. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Supanniga%20Eating%20Room%2C%20Thonglor%20%3A%20%E0%B8%AB%E0%B9%89%E0%B8%AD%E0%B8%87%E0%B8%97%E0%B8%B2%E0%B8%99%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%A7%E0%B8%AA%E0%B8%B8%E0%B8%9E%E0%B8%A3%E0%B8%A3%E0%B8%93%E0%B8%B4%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B9%8C%20%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%AB%E0%B8%A5%E0%B9%88%E0%B8%AD&query_place_id=ChIJYSgxk6yf4jAROxN8pCQzqJA",
+    "second_source_url": "https://www.wongnai.com/restaurants/supannigaeatingroomthonglor",
+    "rank": 10
+  },
+  {
+    "restaurant_name": "Luigi Bangkok",
+    "area": "อารีย์",
+    "area_raw": "Ari",
+    "food_type": "European / Western-Japanese",
+    "rating": 4.6,
+    "review_count": 199,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "น่าจะรองรับได้",
+    "address": "304/2 Vanit Place Aree, Building C 2nd floor, room, 204 ถ. พหลโยธิน, เขตพญาไท, กรุงเทพฯ",
+    "travel_note": "BTS อารีย์ ~3–5 นาที (Vanit Place)",
+    "opening_hours": "ทุกวัน 11:00–22:00",
+    "rating_review_score": 18.3,
+    "group_score": 16,
+    "price_score": 12,
+    "travel_score": 13,
+    "data_completeness_score": 15,
+    "uniqueness_score": 9,
+    "total_score": 83.3,
+    "reason": "เรตติ้ง 4.6★ จาก 199 รีวิว, European / Western-Japanese, BTS อารีย์ ~3–5 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "reasoning": "เรตติ้ง 4.6★ จาก 199 รีวิว, European / Western-Japanese, BTS อารีย์ ~3–5 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "pros": [
+      "เดินจาก BTS สะดวก",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอารีย์ • European / Western-Japanese",
+    "why_recommended": "คะแนนรวม 83.3/100 — เรตติ้ง 4.6★ จาก 199 รีวิว, European / Western-Japanese, BTS อารีย์ ~3–5 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "strengths": "เดินจาก BTS สะดวก · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อารีย์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Luigi%20Bangkok&query_place_id=ChIJtyd2APOf4jARzg2eG-R-yvY",
+    "second_source_url": "https://www.wongnai.com/restaurants/2597557FJ-luigi-bangkok",
+    "rank": 11
+  },
+  {
+    "restaurant_name": "Lucca Thonglor – Mediterranean Restaurant, Rooftop & All-Day Brunch",
+    "area": "ทองหล่อ",
+    "area_raw": "Thonglor",
+    "food_type": "Mediterranean / Brunch",
+    "rating": 4.9,
+    "review_count": 833,
+    "price_range": "$$$ (~501–1,000฿/คน)",
+    "group_fit": "น่าจะรองรับได้",
+    "address": "Thonglor, 125/26 ถ. ทองหล่อ, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ ~8–10 นาที (ติดทองหล่อ ซ.7)",
+    "opening_hours": "ทุกวัน 07:00–23:00 (บรันช์ 08:00–16:00, ดินเนอร์ 16:00–22:00)",
+    "rating_review_score": 21.2,
+    "group_score": 16,
+    "price_score": 12,
+    "travel_score": 10,
+    "data_completeness_score": 14,
+    "uniqueness_score": 9,
+    "total_score": 82.2,
+    "reason": "เรตติ้ง 4.9★ จาก 833 รีวิว, Mediterranean / Brunch, BTS ทองหล่อ ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "reasoning": "เรตติ้ง 4.9★ จาก 833 รีวิว, Mediterranean / Brunch, BTS ทองหล่อ ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.9★",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านทองหล่อ • Mediterranean / Brunch",
+    "why_recommended": "คะแนนรวม 82.2/100 — เรตติ้ง 4.9★ จาก 833 รีวิว, Mediterranean / Brunch, BTS ทองหล่อ ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "strengths": "คะแนนรีวิวสูง 4.9★ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน ทองหล่อ. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Lucca%20Thonglor%20%E2%80%93%20Mediterranean%20Restaurant%2C%20Rooftop%20%26%20All-Day%20Brunch&query_place_id=ChIJbx8TnXKf4jARvOgGrfi8gCQ",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d8797754-Reviews-Lucca_Italian_Restaurant_Bangkok-Bangkok.html",
+    "rank": 12
+  },
+  {
+    "restaurant_name": "TAAN Bangkok - Thai Fine Dining Restaurant",
+    "area": "สยาม",
+    "area_raw": "Siam Square",
+    "food_type": "Thai (Fine Dining, Michelin)",
+    "rating": 4.6,
+    "review_count": 343,
+    "price_range": "$$$$ (>1,000฿; คอร์สเริ่ม ~1,500฿)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "25th Fl, Siam@Siam Design Hotel Bangkok 865 ถ. พระรามที่ 1, เขตปทุมวัน, กรุงเทพฯ",
+    "travel_note": "BTS สนามกีฬาแห่งชาติ ~3–5 นาที (ตรงข้ามสนามศุภฯ)",
+    "opening_hours": "ดินเนอร์ เสิร์ฟเป็นคอร์ส — ยืนยันเวลากับร้าน",
+    "rating_review_score": 19.3,
+    "group_score": 20,
+    "price_score": 8,
+    "travel_score": 13,
+    "data_completeness_score": 11,
+    "uniqueness_score": 10,
+    "total_score": 81.3,
+    "reason": "เรตติ้ง 4.6★ จาก 343 รีวิว, Thai (Fine Dining, Michelin), BTS สนามกีฬาแห่งชาติ ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.6★ จาก 343 รีวิว, Thai (Fine Dining, Michelin), BTS สนามกีฬาแห่งชาติ ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "เดินจาก BTS สะดวก",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ราคาสูง อาจเกินงบมื้อทีมทั่วไป",
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านสยาม • Thai (Fine Dining, Michelin)",
+    "why_recommended": "คะแนนรวม 81.3/100 — เรตติ้ง 4.6★ จาก 343 รีวิว, Thai (Fine Dining, Michelin), BTS สนามกีฬาแห่งชาติ ~3–5 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "เดินจาก BTS สะดวก · รองรับกลุ่มใหญ่/มีพื้นที่ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ราคาสูง อาจเกินงบมื้อทีมทั่วไป · เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน สยาม. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=TAAN%20Bangkok%20-%20Thai%20Fine%20Dining%20Restaurant&query_place_id=ChIJbV7JakqZ4jARz5eeuH1tuxE",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d15197481-Reviews-TAAN-Bangkok.html",
+    "rank": 13
+  },
+  {
+    "restaurant_name": "Chez Papa Bangkok",
+    "area": "พร้อมพงษ์",
+    "area_raw": "Phrom Phong / Sukhumvit",
+    "food_type": "French (Bistro/Tapas)",
+    "rating": 4.8,
+    "review_count": 538,
+    "price_range": "$$$ (เซ็ตเที่ยง 390฿; ดินเนอร์ 501–1,000฿)",
+    "group_fit": "รองรับกลุ่มได้ดี",
+    "address": "64 ซ. สุขุมวิท 51, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ / พร้อมพงษ์ ~10–12 นาที (ปลายสุขุมวิท 51) หรือนั่งวิน",
+    "opening_hours": "เที่ยง 11:00–14:00 + ดินเนอร์ — ยืนยันเวลาปิด",
+    "rating_review_score": 20.9,
+    "group_score": 20,
+    "price_score": 12,
+    "travel_score": 7,
+    "data_completeness_score": 12,
+    "uniqueness_score": 9,
+    "total_score": 80.9,
+    "reason": "เรตติ้ง 4.8★ จาก 538 รีวิว, French (Bistro/Tapas), BTS ทองหล่อ / พร้อมพงษ์ ~10–12 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 538 รีวิว, French (Bistro/Tapas), BTS ทองหล่อ / พร้อมพงษ์ ~10–12 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "รองรับกลุ่มใหญ่/มีพื้นที่",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านพร้อมพงษ์ • French (Bistro/Tapas)",
+    "why_recommended": "คะแนนรวม 80.9/100 — เรตติ้ง 4.8★ จาก 538 รีวิว, French (Bistro/Tapas), BTS ทองหล่อ / พร้อมพงษ์ ~10–12 นาที. กลุ่ม 8–12 คน: รองรับกลุ่มได้ดี.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · รองรับกลุ่มใหญ่/มีพื้นที่ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน · เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน พร้อมพงษ์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Chez%20Papa%20Bangkok&query_place_id=ChIJTWM3irSf4jARH23HAeWx7uk",
+    "second_source_url": "https://th.tripadvisor.com/Restaurant_Review-g293916-d25400407-Reviews-Chez_Papa_Bangkok-Bangkok.html",
+    "rank": 14
+  },
+  {
+    "restaurant_name": "PEPE Bangkok",
+    "area": "พร้อมพงษ์",
+    "area_raw": "Phrom Phong / Sukhumvit",
+    "food_type": "Asian Fusion",
+    "rating": 4.8,
+    "review_count": 904,
+    "price_range": "$$$–$$$$ (501–>1,000฿/คน)",
+    "group_fit": "น่าจะรองรับได้",
+    "address": "173, 3 ซ. สุขุมวิท 16, เขตคลองเตย, กรุงเทพฯ",
+    "travel_note": "BTS อโศก / MRT สุขุมวิท ~8–10 นาที (สุขุมวิท 16) หรือ MRT ศูนย์ฯสิริกิติ์",
+    "opening_hours": "ทุกวัน 17:00–00:00",
+    "rating_review_score": 20.9,
+    "group_score": 16,
+    "price_score": 9,
+    "travel_score": 10,
+    "data_completeness_score": 15,
+    "uniqueness_score": 9,
+    "total_score": 79.9,
+    "reason": "เรตติ้ง 4.8★ จาก 904 รีวิว, Asian Fusion, BTS อโศก / MRT สุขุมวิท ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 904 รีวิว, Asian Fusion, BTS อโศก / MRT สุขุมวิท ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านพร้อมพงษ์ • Asian Fusion",
+    "why_recommended": "คะแนนรวม 79.9/100 — เรตติ้ง 4.8★ จาก 904 รีวิว, Asian Fusion, BTS อโศก / MRT สุขุมวิท ~8–10 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ควรจองล่วงหน้าสำหรับกลุ่มใหญ่",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน พร้อมพงษ์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=PEPE%20Bangkok&query_place_id=ChIJIUHmOe2f4jAR2l7P6OOm4hg",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d25449408-Reviews-Pepe_Bangkok-Bangkok.html",
+    "rank": 15
+  },
+  {
+    "restaurant_name": "ปิง หูฉลาม อโศก",
+    "area": "อโศก",
+    "area_raw": "Asoke",
+    "food_type": "Chinese",
+    "rating": 4.6,
+    "review_count": 1595,
+    "price_range": "$$$ (251–1,000฿+/คน)",
+    "group_fit": "น่าจะรองรับได้",
+    "address": "137/3 ซอย สุขุมวิท 21, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก / MRT สุขุมวิท ~5–8 นาที (สุขุมวิท 21 / อโศกมนตรี)",
+    "opening_hours": "ยืนยันกับร้าน (โดยทั่วไป ~11:00–22:00)",
+    "rating_review_score": 21.8,
+    "group_score": 16,
+    "price_score": 12,
+    "travel_score": 10,
+    "data_completeness_score": 12,
+    "uniqueness_score": 7,
+    "total_score": 78.8,
+    "reason": "เรตติ้ง 4.6★ จาก 1,595 รีวิว, Chinese, BTS อโศก / MRT สุขุมวิท ~5–8 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "reasoning": "เรตติ้ง 4.6★ จาก 1,595 รีวิว, Chinese, BTS อโศก / MRT สุขุมวิท ~5–8 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "pros": [
+      "ฐานรีวิวใหญ่ (1,595 รีวิว) น่าเชื่อถือ"
+    ],
+    "cons": [
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอโศก • Chinese",
+    "why_recommended": "คะแนนรวม 78.8/100 — เรตติ้ง 4.6★ จาก 1,595 รีวิว, Chinese, BTS อโศก / MRT สุขุมวิท ~5–8 นาที. กลุ่ม 8–12 คน: น่าจะรองรับได้.",
+    "strengths": "ฐานรีวิวใหญ่ (1,595 รีวิว) น่าเชื่อถือ",
+    "trade_off_risk": "เวลาเปิด-ปิดต้องยืนยันกับร้าน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อโศก. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B8%9B%E0%B8%B4%E0%B8%87%20%E0%B8%AB%E0%B8%B9%E0%B8%89%E0%B8%A5%E0%B8%B2%E0%B8%A1%20%E0%B8%AD%E0%B9%82%E0%B8%A8%E0%B8%81&query_place_id=ChIJnfQQnAGf4jARkEY6N_nZR74",
+    "second_source_url": "https://www.wongnai.com/restaurants/2516vD-%E0%B8%A0%E0%B8%B1%E0%B8%95%E0%B8%95%E0%B8%B2%E0%B8%84%E0%B8%B2%E0%B8%A3-%E0%B8%9B%E0%B8%B4%E0%B8%87-%E0%B8%AD%E0%B9%82%E0%B8%A8%E0%B8%81-%E0%B8%AA%E0%B8%B8%E0%B8%82%E0%B8%B8%E0%B8%A1%E0%B8%A7%E0%B8%B4%E0%B8%97-21",
+    "rank": 16
+  },
+  {
+    "restaurant_name": "Do Nūa - La Villa Ari",
+    "area": "อารีย์",
+    "area_raw": "Ari",
+    "food_type": "Thai (Isaan)",
+    "rating": 4.9,
+    "review_count": 159,
+    "price_range": "$ (101–250฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "3rd Floor, 356 ถ. พหลโยธิน, เขตพญาไท, กรุงเทพฯ",
+    "travel_note": "BTS อารีย์ ~2–3 นาที (ติด La Villa)",
+    "opening_hours": "ทุกวัน ~11:00–20:30",
+    "rating_review_score": 19.2,
+    "group_score": 11,
+    "price_score": 12,
+    "travel_score": 15,
+    "data_completeness_score": 12,
+    "uniqueness_score": 9,
+    "total_score": 78.2,
+    "reason": "เรตติ้ง 4.9★ จาก 159 รีวิว, Thai (Isaan), BTS อารีย์ ~2–3 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.9★ จาก 159 รีวิว, Thai (Isaan), BTS อารีย์ ~2–3 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.9★",
+      "เดินจาก BTS สะดวก",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอารีย์ • Thai (Isaan)",
+    "why_recommended": "คะแนนรวม 78.2/100 — เรตติ้ง 4.9★ จาก 159 รีวิว, Thai (Isaan), BTS อารีย์ ~2–3 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.9★ · เดินจาก BTS สะดวก · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อารีย์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Do%20N%C5%ABa%20-%20La%20Villa%20Ari&query_place_id=ChIJzSGKcbqd4jARz2juHM1CBWU",
+    "second_source_url": "https://www.tripadvisor.com/Attraction_Review-g293916-d2706719-Reviews-La_Villa-Bangkok.html",
+    "rank": 17
+  },
+  {
+    "restaurant_name": "ครัวเจียงใหม่ - ทองหล่อ",
+    "area": "ทองหล่อ",
+    "area_raw": "Thonglor",
+    "food_type": "Thai (Northern)",
+    "rating": 4.8,
+    "review_count": 2758,
+    "price_range": "$ (101–250฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "125 24 ถ. ทองหล่อ, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ ~10 นาที (ปากซอยทองหล่อ 7)",
+    "opening_hours": "ทุกวัน 11:00–22:00",
+    "rating_review_score": 23.4,
+    "group_score": 11,
+    "price_score": 12,
+    "travel_score": 10,
+    "data_completeness_score": 12,
+    "uniqueness_score": 9,
+    "total_score": 77.4,
+    "reason": "เรตติ้ง 4.8★ จาก 2,758 รีวิว, Thai (Northern), BTS ทองหล่อ ~10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 2,758 รีวิว, Thai (Northern), BTS ทองหล่อ ~10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ฐานรีวิวใหญ่ (2,758 รีวิว) น่าเชื่อถือ",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านทองหล่อ • Thai (Northern)",
+    "why_recommended": "คะแนนรวม 77.4/100 — เรตติ้ง 4.8★ จาก 2,758 รีวิว, Thai (Northern), BTS ทองหล่อ ~10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ฐานรีวิวใหญ่ (2,758 รีวิว) น่าเชื่อถือ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน ทองหล่อ. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%88%E0%B8%B5%E0%B8%A2%E0%B8%87%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88%20-%20%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%AB%E0%B8%A5%E0%B9%88%E0%B8%AD&query_place_id=ChIJh7s6GVOe4jAReTmapQOwBQ0",
+    "second_source_url": "https://www.wongnai.com/restaurants/273457sm-%E0%B8%84%E0%B8%A3%E0%B8%B1%E0%B8%A7%E0%B9%80%E0%B8%88%E0%B8%B5%E0%B8%A2%E0%B8%87%E0%B9%83%E0%B8%AB%E0%B8%A1%E0%B9%88-%E0%B8%AA%E0%B8%B2%E0%B8%82%E0%B8%B2-%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%AB%E0%B8%A5%E0%B9%88%E0%B8%AD",
+    "rank": 18
+  },
+  {
+    "restaurant_name": "M3 Restaurant Asoke",
+    "area": "อโศก",
+    "area_raw": "Asoke",
+    "food_type": "Thai / International (Buffet)",
+    "rating": 4.8,
+    "review_count": 9,
+    "price_range": "$$ (~200–500฿; บุฟเฟต์กลางวัน ~200฿เนต)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "133/2 ถนน อโศกมนตรี, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS อโศก ~5 นาที (สุขุมวิท 21)",
+    "opening_hours": "All-day ในโรงแรม — ยืนยันเวลา",
+    "rating_review_score": 14.9,
+    "group_score": 11,
+    "price_score": 15,
+    "travel_score": 13,
+    "data_completeness_score": 8,
+    "uniqueness_score": 9,
+    "total_score": 70.9,
+    "reason": "เรตติ้ง 4.8★ จาก 9 รีวิว, Thai / International (Buffet), BTS อโศก ~5 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 9 รีวิว, Thai / International (Buffet), BTS อโศก ~5 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "เดินจาก BTS สะดวก",
+      "ประสบการณ์เด่น/มีเอกลักษณ์",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "รีวิวยังน้อย (9) ความเชื่อมั่นข้อมูลต่ำลง",
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอโศก • Thai / International (Buffet)",
+    "why_recommended": "คะแนนรวม 70.9/100 — เรตติ้ง 4.8★ จาก 9 รีวิว, Thai / International (Buffet), BTS อโศก ~5 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · เดินจาก BTS สะดวก · ประสบการณ์เด่น/มีเอกลักษณ์ · ราคากำลังดีสำหรับมื้อทีม",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · รีวิวยังน้อย (9) ความเชื่อมั่นข้อมูลต่ำลง",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อโศก. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=M3%20Restaurant%20Asoke&query_place_id=ChIJ8X5vhzqf4jAR_-nxBaguVO8",
+    "second_source_url": "https://www.wongnai.com/restaurants/819818Zp-m3-at-furamaxclusive-asoke",
+    "rank": 19
+  },
+  {
+    "restaurant_name": "SWD Bangkok",
+    "area": "พร้อมพงษ์",
+    "area_raw": "Phrom Phong / Sukhumvit",
+    "food_type": "Cafe / Brunch / International",
+    "rating": 4.8,
+    "review_count": 377,
+    "price_range": "$$ (251–500฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "249 สุขุมวิท 31, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS พร้อมพงษ์ / อโศก ~12–15 นาที (สุขุมวิท 31) แนะนำวิน/แท็กซี่",
+    "opening_hours": "ทุกวัน 07:00–24:00",
+    "rating_review_score": 19.9,
+    "group_score": 11,
+    "price_score": 15,
+    "travel_score": 6,
+    "data_completeness_score": 12,
+    "uniqueness_score": 7,
+    "total_score": 70.9,
+    "reason": "เรตติ้ง 4.8★ จาก 377 รีวิว, Cafe / Brunch / International, BTS พร้อมพงษ์ / อโศก ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 377 รีวิว, Cafe / Brunch / International, BTS พร้อมพงษ์ / อโศก ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านพร้อมพงษ์ • Cafe / Brunch / International",
+    "why_recommended": "คะแนนรวม 70.9/100 — เรตติ้ง 4.8★ จาก 377 รีวิว, Cafe / Brunch / International, BTS พร้อมพงษ์ / อโศก ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ราคากำลังดีสำหรับมื้อทีม",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน พร้อมพงษ์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=SWD%20Bangkok&query_place_id=ChIJPSQXMkOf4jARUl6zswYm-X4",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d25314118-Reviews-SWD_Bangkok-Bangkok.html",
+    "rank": 20
+  },
+  {
+    "restaurant_name": "พาร์มา อารีย์",
+    "area": "อารีย์",
+    "area_raw": "Ari",
+    "food_type": "Italian",
+    "rating": 4.7,
+    "review_count": 187,
+    "price_range": "$$$ (>1,000฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "2 1 ซ. อารีย์สัมพันธ์ 4, เขตพญาไท, กรุงเทพฯ",
+    "travel_note": "BTS อารีย์ ~8–10 นาที (ซ.อารีย์สัมพันธ์ 4)",
+    "opening_hours": "อ.–อา. 17:00–00:00 (ปิดจันทร์)",
+    "rating_review_score": 18.6,
+    "group_score": 11,
+    "price_score": 12,
+    "travel_score": 10,
+    "data_completeness_score": 12,
+    "uniqueness_score": 7,
+    "total_score": 70.6,
+    "reason": "เรตติ้ง 4.7★ จาก 187 รีวิว, Italian, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 187 รีวิว, Italian, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอารีย์ • Italian",
+    "why_recommended": "คะแนนรวม 70.6/100 — เรตติ้ง 4.7★ จาก 187 รีวิว, Italian, BTS อารีย์ ~8–10 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.7★",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อารีย์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=%E0%B8%9E%E0%B8%B2%E0%B8%A3%E0%B9%8C%E0%B8%A1%E0%B8%B2%20%E0%B8%AD%E0%B8%B2%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B9%8C&query_place_id=ChIJuxXFDRyf4jAROApXe-uZPCw",
+    "second_source_url": "https://www.wongnai.com/reviews/9fe33a754b70443c9bd7357d2ccf4618",
+    "rank": 21
+  },
+  {
+    "restaurant_name": "Fuego",
+    "area": "ทองหล่อ",
+    "area_raw": "Thonglor",
+    "food_type": "Spanish-Japanese (Tapas, Michelin)",
+    "rating": 4.8,
+    "review_count": 623,
+    "price_range": "$$$$ (>1,000฿; คอร์ส ~2,600฿)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "ตึก The Taste Thonglor ชั้น 2 ถ. ทองหล่อ, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ ~10–12 นาที (ทองหล่อ ซ.11) หรือนั่งวิน",
+    "opening_hours": "ทุกวัน 17:30–24:00",
+    "rating_review_score": 20.9,
+    "group_score": 11,
+    "price_score": 8,
+    "travel_score": 7,
+    "data_completeness_score": 11,
+    "uniqueness_score": 10,
+    "total_score": 67.9,
+    "reason": "เรตติ้ง 4.8★ จาก 623 รีวิว, Spanish-Japanese (Tapas, Michelin), BTS ทองหล่อ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.8★ จาก 623 รีวิว, Spanish-Japanese (Tapas, Michelin), BTS ทองหล่อ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.8★",
+      "ประสบการณ์เด่น/มีเอกลักษณ์"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+      "ราคาสูง อาจเกินงบมื้อทีมทั่วไป"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านทองหล่อ • Spanish-Japanese (Tapas, Michelin)",
+    "why_recommended": "คะแนนรวม 67.9/100 — เรตติ้ง 4.8★ จาก 623 รีวิว, Spanish-Japanese (Tapas, Michelin), BTS ทองหล่อ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.8★ · ประสบการณ์เด่น/มีเอกลักษณ์",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน ทองหล่อ. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Fuego&query_place_id=ChIJN7fHY7Gf4jAR8jjTD8UA81k",
+    "second_source_url": "https://www.tripadvisor.com/Restaurant_Review-g293916-d27987220-Reviews-Fuego-Bangkok.html",
+    "rank": 22
+  },
+  {
+    "restaurant_name": "Miss Siam Restaurant (ห้องอาหารมิสสยาม)",
+    "area": "สยาม",
+    "area_raw": "Siam Square",
+    "food_type": "Thai",
+    "rating": 4.7,
+    "review_count": 49,
+    "price_range": "$$ (251–500฿; บุฟเฟต์กลางวัน ~675฿)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "400 ถ. พญาไท, เขตปทุมวัน, กรุงเทพฯ",
+    "travel_note": "BTS ราชเทวี ~5–7 นาที (รร.หัวช้างฯ ถ.พญาไท)",
+    "opening_hours": "All-day dining ในโรงแรม — ยืนยันเวลา",
+    "rating_review_score": 15.6,
+    "group_score": 11,
+    "price_score": 15,
+    "travel_score": 12,
+    "data_completeness_score": 8,
+    "uniqueness_score": 6,
+    "total_score": 67.6,
+    "reason": "เรตติ้ง 4.7★ จาก 49 รีวิว, Thai, BTS ราชเทวี ~5–7 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 49 รีวิว, Thai, BTS ราชเทวี ~5–7 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★",
+      "ราคากำลังดีสำหรับมื้อทีม"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "รีวิวยังน้อย (49) ความเชื่อมั่นข้อมูลต่ำลง",
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านสยาม • Thai",
+    "why_recommended": "คะแนนรวม 67.6/100 — เรตติ้ง 4.7★ จาก 49 รีวิว, Thai, BTS ราชเทวี ~5–7 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.7★ · ราคากำลังดีสำหรับมื้อทีม",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · รีวิวยังน้อย (49) ความเชื่อมั่นข้อมูลต่ำลง",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน สยาม. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Miss%20Siam%20Restaurant%20(%E0%B8%AB%E0%B9%89%E0%B8%AD%E0%B8%87%E0%B8%AD%E0%B8%B2%E0%B8%AB%E0%B8%B2%E0%B8%A3%E0%B8%A1%E0%B8%B4%E0%B8%AA%E0%B8%AA%E0%B8%A2%E0%B8%B2%E0%B8%A1)&query_place_id=ChIJ3-VagW6f4jARTZSahLdTbfM",
+    "second_source_url": "https://www.wongnai.com/restaurants/146877RX-miss-siam-hua-chang-heritage-hotel-bangkok",
+    "rank": 23
+  },
+  {
+    "restaurant_name": "Di Vino Bangkok | Italian Restaurant Thonglor",
+    "area": "ทองหล่อ",
+    "area_raw": "Thonglor",
+    "food_type": "Italian",
+    "rating": 4.7,
+    "review_count": 384,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "Penny’s Balcony, ถ. ทองหล่อ, เขตวัฒนา, กรุงเทพฯ",
+    "travel_note": "BTS ทองหล่อ ~12–15 นาที (ทองหล่อ ซ.16) แนะนำวิน/แท็กซี่",
+    "opening_hours": "ทุกวัน 11:30–14:00, 17:30–22:30",
+    "rating_review_score": 19.6,
+    "group_score": 11,
+    "price_score": 12,
+    "travel_score": 6,
+    "data_completeness_score": 12,
+    "uniqueness_score": 7,
+    "total_score": 67.6,
+    "reason": "เรตติ้ง 4.7★ จาก 384 รีวิว, Italian, BTS ทองหล่อ ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.7★ จาก 384 รีวิว, Italian, BTS ทองหล่อ ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "คะแนนรีวิวสูง 4.7★"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านทองหล่อ • Italian",
+    "why_recommended": "คะแนนรวม 67.6/100 — เรตติ้ง 4.7★ จาก 384 รีวิว, Italian, BTS ทองหล่อ ~12–15 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "คะแนนรีวิวสูง 4.7★",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน ทองหล่อ. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Di%20Vino%20Bangkok%20%7C%20Italian%20Restaurant%20Thonglor&query_place_id=ChIJi7QNHVOe4jARgyB05vA6Gk4",
+    "second_source_url": "https://www.wongnai.com/restaurants/25582hv-divino-divino-bangkok",
+    "rank": 24
+  },
+  {
+    "restaurant_name": "Cantina Italian Kitchen (Ari)",
+    "area": "อารีย์",
+    "area_raw": "Ari",
+    "food_type": "Italian",
+    "rating": 4.6,
+    "review_count": 796,
+    "price_range": "$$$ (501–1,000฿/คน)",
+    "group_fit": "ต้องยืนยันโต๊ะกลุ่ม",
+    "address": "142 พระรามที่ 6 ซอย 30, เขตพญาไท, กรุงเทพฯ",
+    "travel_note": "BTS อารีย์ ~10–12 นาที (พระราม 6 ซ.30 / ราชครู) หรือนั่งวิน",
+    "opening_hours": "ยืนยันกับร้าน",
+    "rating_review_score": 20.3,
+    "group_score": 11,
+    "price_score": 12,
+    "travel_score": 7,
+    "data_completeness_score": 9,
+    "uniqueness_score": 7,
+    "total_score": 66.3,
+    "reason": "เรตติ้ง 4.6★ จาก 796 รีวิว, Italian, BTS อารีย์ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "reasoning": "เรตติ้ง 4.6★ จาก 796 รีวิว, Italian, BTS อารีย์ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "pros": [
+      "เรตติ้ง 4.6★ ในย่าน อารีย์"
+    ],
+    "cons": [
+      "ต้องยืนยันการรองรับโต๊ะ 8–12 คน",
+      "ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+      "เวลาเปิด-ปิดต้องยืนยันกับร้าน"
+    ],
+    "final_note": "ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "best_for": "มื้อทีม 8–12 คน ย่านอารีย์ • Italian",
+    "why_recommended": "คะแนนรวม 66.3/100 — เรตติ้ง 4.6★ จาก 796 รีวิว, Italian, BTS อารีย์ ~10–12 นาที. กลุ่ม 8–12 คน: ต้องยืนยันโต๊ะกลุ่ม.",
+    "strengths": "เรตติ้ง 4.6★ ในย่าน อารีย์",
+    "trade_off_risk": "ต้องยืนยันการรองรับโต๊ะ 8–12 คน · ระยะเดินจาก BTS ค่อนข้างไกล/ต้องนั่งวิน",
+    "final_recommendation": "เหมาะแนะนำสำหรับมื้อทีม — ตัวเลือกดีในย่าน อารีย์. ตรวจสอบเวลาเปิด-ปิด ราคา และการจองโต๊ะ 8–12 คน กับร้านก่อนยืนยัน",
+    "google_maps_url": "https://www.google.com/maps/search/?api=1&query=Cantina%20Italian%20Kitchen%20(Ari)&query_place_id=ChIJB7NJSKie4jARfoG2zttdIxU",
+    "second_source_url": "https://www.wongnai.com/restaurants/249576uf-cantina-italian-kitchen-%E0%B8%AD%E0%B8%B2%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B9%8C",
+    "rank": 25
+  }
+];
+let refreshDataset;  /* assigned inside the dataset IIFE; re-runs dropdowns + table */
+
+/* n8n Production Webhook — live connection to the Dataset Ask Box. */
+const N8N_ASK_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/restaurant-ask-box";
+
+/* ---------- helpers ---------- */
+const NV = '<span class="needv">⚠️ Need verification</span>';
+const val = v => (v===null||v===undefined||String(v).trim()==='') ? NV : v;
+const fmt = n => Number(n).toLocaleString();
+const shortNote = n => (n||'').split('(')[0].trim();
+/* extract the baht range inside parentheses from price_range, drop the $ symbols */
+function formatPriceTH(pr){
+  if(pr===null || pr===undefined || String(pr).trim()==='') return 'ราคา: Need verification';
+  const m = String(pr).match(/\(([^)]*)\)/);
+  const inside = m ? m[1].trim() : String(pr).replace(/\$/g,'').trim();
+  return 'ราคา '+inside;
+}
+/* baht range only (no "ราคา" prefix) — for the Top 10 table Price column */
+function priceTH(pr){
+  if(pr===null || pr===undefined || String(pr).trim()==='') return 'Need verification';
+  const m = String(pr).match(/\(([^)]*)\)/);
+  return m ? m[1].trim() : String(pr).replace(/\$/g,'').trim();
+}
+/* real caution text for the Comparison "Trade-off / Risk" column — never blank */
+const TRADEOFF_FALLBACK = 'ควรตรวจสอบราคา เวลาเปิด-ปิด และการจองโต๊ะ 8–12 คนก่อนตัดสินใจ';
+function tradeoffText(r){
+  if(r.trade_off_risk && String(r.trade_off_risk).trim() !== '') return r.trade_off_risk;
+  if(Array.isArray(r.cons) && r.cons.length) return r.cons.join(' · ');
+  if(r.final_note && String(r.final_note).trim() !== '') return r.final_note;
+  return TRADEOFF_FALLBACK;
+}
+function linkBtn(url,label,solid){
+  const cls = 'btn'+(solid?' solid':'');
+  if(!url || url==='Need verification') return '<span class="btn disabled">'+label+'</span>';
+  return '<a class="'+cls+'" target="_blank" rel="noopener" href="'+url+'">'+label+'</a>';
+}
+const SUB = r => [['Rating & Review',r.rating_review_score,25],['Group',r.group_score,20],
+  ['Price',r.price_score,15],['Travel',r.travel_score,15],
+  ['Data',r.data_completeness_score,15],['Uniqueness',r.uniqueness_score,10]];
+
+/* =========================================================
+   AREA FILTER — filters the SAME restaurantsData (no new data,
+   no score changes). All render functions take filteredData.
+   ========================================================= */
+const ALL_AREAS = 'All Areas';
+const AREA_LIST = ['สยาม','อารีย์','ทองหล่อ','อโศก','พร้อมพงษ์'];
+let currentArea = ALL_AREAS;
+const EMPTY = 'ไม่พบร้านในพื้นที่นี้';
+
+/* return data for the active area, sorted by total_score desc (copy — never mutate source) */
+function getFilteredData(){
+  const d = (currentArea === ALL_AREAS)
+    ? restaurantsData.slice()
+    : restaurantsData.filter(r => r.area === currentArea);
+  return d.slice().sort((a,b) => b.total_score - a.total_score);
+}
+
+/* ---------- Hero / Decision Summary (top pick of current area) ---------- */
+function renderHero(data){
+  const head = document.getElementById('heroHeadline');
+  const card = document.getElementById('heroCard');
+  if(!data.length){
+    head.textContent = EMPTY;
+    card.innerHTML = '<div style="padding:8px 0;color:#eed9c1;">'+EMPTY+'</div>';
+    return;
+  }
+  const t = data[0];
+  head.textContent = 'คำแนะนำหลัก: เลือก '+t.restaurant_name+' เป็นอันดับ 1 สำหรับมื้อทีม 8–12 คน';
+  const bullets = [
+    'รีวิวแข็งแรง '+t.rating+'★ จาก '+fmt(t.review_count)+' รีวิว (ฐานข้อมูลน่าเชื่อถือ)',
+    'เดินทางสะดวก — '+shortNote(t.travel_note),
+    'เหมาะกับทีม 8–12 คน — '+val(t.group_fit)
+  ];
+  card.innerHTML =
+    '<div>'
+      +'<span class="tag">🏆 BEST OVERALL · TOP PICK</span>'
+      +'<h3>'+t.restaurant_name+'</h3>'
+      +'<div class="loc">📍 '+t.area+' · '+val(t.food_type)+'</div>'
+      +'<ul class="hero-bullets">'+bullets.map(b=>'<li><span class="ic">✓</span><span>'+b+'</span></li>').join('')+'</ul>'
+    +'</div>'
+    +'<div><div class="ring"><div class="big">'+t.total_score+'</div><div class="of">/ 100</div>'
+      +'<div class="lbl">Total Score</div></div></div>';
+}
+
+/* ---------- Summary cards ---------- */
+function renderSummary(data){
+  const areas = [...new Set(data.map(r=>r.area))];
+  const top = data[0];
+  const cards = [
+    {k:'Total Restaurants', v:data.length, s:'ร้านที่วิเคราะห์'},
+    {k:'Areas Covered', v:areas.length, s:areas.length?areas.join(' · '):'-'},
+    {k:'Data Sources', v:'2+', s:'Google Maps + Wongnai/Tripadvisor'},
+    {k:'Top Score', v:top?top.total_score:'-', s:'/ 100 คะแนน'},
+    {k:'Recommended Top Pick', v:top?'#1':'-', s:top?top.restaurant_name:EMPTY}
+  ];
+  document.getElementById('summaryCards').innerHTML = cards.map(c=>
+    '<div class="scard"><div class="k">'+c.k+'</div><div class="v">'+c.v+'<small>'+c.s+'</small></div></div>'
+  ).join('');
+}
+
+/* ---------- Top 3 cards ---------- */
+function renderTop3(data){
+  const skins = ['gold','silver','bronze'];
+  const labels = ['#1 Best Overall','#2 Best Balance','#3 Best Experience'];
+  const box = document.getElementById('recCards');
+  if(!data.length){ box.innerHTML = '<div style="color:var(--muted);">'+EMPTY+'</div>'; return; }
+  box.innerHTML = data.slice(0,3).map((r,i)=>{
+    const pros = (r.pros||[]).map(p=>'<li>'+p+'</li>').join('');
+    const cons = (r.cons||[]).map(c=>'<li>'+c+'</li>').join('');
+    const ss = SUB(r).map(s=>'<span class="ss">'+s[0]+' '+s[1]+'/'+s[2]+'</span>').join('');
+    const why = 'รองรับกลุ่ม 8–12 คน ('+val(r.group_fit)+') · '+shortNote(r.travel_note)+' · '+formatPriceTH(r.price_range);
+    const recmeta = '<div class="recmeta">'
+      +'<span>⭐ '+r.rating+'</span><span>💬 '+fmt(r.review_count)+'</span><span>📍 '+r.area+'</span></div>';
+    const badges = '<div class="recbadges">'
+      +'<span class="fbadge">🍴 '+val(r.food_type)+'</span>'
+      +'<span class="fbadge">฿ '+priceTH(r.price_range)+'</span>'
+      +'<span class="fbadge">👥 '+val(r.group_fit)+'</span></div>';
+    return '<div class="rec '+skins[i]+'">'
+      +'<div class="head"><span class="label">'+labels[i]+'</span>'
+        +'<h3>🍽️ '+r.restaurant_name+'</h3>'
+        +'<div class="loc">📍 '+r.area+' · '+val(r.food_type)+'</div>'
+        +recmeta
+        +'<div class="scorebox"><span class="big">'+r.total_score+'</span><span class="of">/ 100 คะแนน</span></div>'
+        +'<div class="subscores">'+ss+'</div>'
+      +'</div>'
+      +'<div class="body">'
+        +badges
+        +'<div class="why"><p>'+why+'</p></div>'
+        +'<div class="blk"><h5>จุดเด่น</h5><ul>'+pros+'</ul></div>'
+        +'<div class="blk"><h5>ข้อควรระวัง / Trade-off</h5><ul class="cons">'+cons+'</ul></div>'
+      +'</div>'
+      +'<div class="foot"><div class="fnote">'+val(r.final_recommendation)+'</div>'
+        +'<div class="recbtns">'+linkBtn(r.google_maps_url,'📍 Google Maps',true)+linkBtn(r.second_source_url,'Review')+'</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+/* ---------- Top 10 table (main row + expandable breakdown) ----------
+   Display rank = position AFTER filter (1,2,3...). r.rank in the source
+   data is never modified. */
+function renderTop10(data){
+  const body = document.getElementById('top10Body');
+  if(!data.length){
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:26px;">'+EMPTY+'</td></tr>';
+    return;
+  }
+  const rows = data.slice(0,10).map((r,i)=>{
+    const disp = i+1;                              // new sequential rank after filter
+    const rc = disp<=3 ? 'rankbubble r'+disp : 'rankbubble';
+    const topcls = disp<=3 ? ' top'+disp : '';
+    const breakdown = SUB(r).map(s=>{
+      const pct = Math.round(s[1]/s[2]*100);
+      return '<div class="brow"><div class="bl"><span>'+s[0]+'</span><b>'+s[1]+'/'+s[2]+'</b></div>'
+        +'<div class="btrack"><div class="bfill" style="width:'+pct+'%"></div></div></div>';
+    }).join('');
+    const main = '<tr class="main'+topcls+'">'
+      +'<td><span class="'+rc+'">'+disp+'</span></td>'
+      +'<td class="rname"><b>'+r.restaurant_name+'</b>'
+        +'<div><button class="exp" data-r="'+r.rank+'">ดูคะแนนย่อย ▾</button></div></td>'
+      +'<td><span class="areatag">'+r.area+'</span></td>'
+      +'<td>'+val(r.food_type)+'</td>'
+      +'<td>'+r.rating+'★</td>'
+      +'<td>'+fmt(r.review_count)+'</td>'
+      +'<td>'+priceTH(r.price_range)+'</td>'
+      +'<td>'+val(r.group_fit)+'</td>'
+      +'<td><span class="totalpill">'+r.total_score+'</span></td>'
+      +'<td><div class="evidence-actions">'+linkBtn(r.google_maps_url,'Maps')+linkBtn(r.second_source_url,'Review')+'</div></td>'
+      +'</tr>';
+    const brk = '<tr class="break" id="bk-'+r.rank+'"><td colspan="10">'
+      +'<div class="breakgrid">'+breakdown+'</div>'
+      +'<div class="breason"><b>เหตุผล:</b> '+val(r.reason)+'</div>'
+      +'</td></tr>';
+    return main+brk;
+  }).join('');
+  body.innerHTML = rows;
+  document.querySelectorAll('.exp').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const row = document.getElementById('bk-'+btn.dataset.r);
+      const open = row.classList.toggle('open');
+      btn.textContent = open ? 'ซ่อนคะแนนย่อย ▴' : 'ดูคะแนนย่อย ▾';
+    });
+  });
+}
+
+/* ---------- Comparison table ---------- */
+function renderComparison(data){
+  const body = document.getElementById('compareBody');
+  if(!data.length){
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px;">'+EMPTY+'</td></tr>';
+    return;
+  }
+  /* show all restaurants in the current filtered result, capped at 10 rows */
+  body.innerHTML = data.slice(0,10).map(r=>
+    '<tr>'
+    +'<td style="min-width:170px;"><b>'+r.restaurant_name+'</b><br><span class="areatag">'+r.area+'</span></td>'
+    +'<td style="min-width:160px;">'+val(r.best_for)+'</td>'
+    +'<td style="min-width:220px;">'+val(r.strengths)+'</td>'
+    +'<td style="min-width:180px;color:var(--amber);">'+tradeoffText(r)+'</td>'
+    +'<td style="min-width:220px;">'+val(r.final_recommendation)+'</td>'
+    +'</tr>'
+  ).join('');
+}
+
+/* ---------- Headings + "Showing" text + nav state ---------- */
+function updateHeadings(){
+  document.getElementById('top10Title').textContent =
+    (currentArea === ALL_AREAS) ? 'Top 10 Ranking' : 'Top Restaurants in '+currentArea;
+  document.getElementById('areaShowing').innerHTML =
+    'แสดงร้านใน: <b>'+(currentArea === ALL_AREAS ? 'ทุกย่าน' : currentArea)+'</b>';
+
+  /* Comparison title/subtitle reflect scope + count shown */
+  const cmpTitle = document.getElementById('compareTitle');
+  const cmpLead = document.getElementById('compareLead');
+  if(currentArea === ALL_AREAS){
+    cmpTitle.textContent = 'Restaurant Comparison (Top 10 of All Areas)';
+    cmpLead.textContent = 'เปรียบเทียบจุดเด่น ข้อควรระวัง และคำแนะนำของร้าน Top 10 จากทั้งหมด '+restaurantsData.length+' ร้าน';
+  }else{
+    const cnt = restaurantsData.filter(r=>r.area===currentArea).length;
+    cmpTitle.textContent = 'Restaurant Comparison ('+currentArea+' · '+cnt+' restaurants)';
+    cmpLead.textContent = 'เปรียบเทียบร้านทั้งหมดในพื้นที่ที่เลือกจากผลจัดอันดับ';
+  }
+}
+
+/* ---------- Question chips (area-aware) ---------- */
+function renderQuestionChips(){
+  const base = ['ร้านไหนคะแนนสูงสุด?','ร้านไหนเหมาะกับทีม 8–12 คน?','ร้านอาหารไทยที่แนะนำ?'];
+  const chips = (currentArea === ALL_AREAS)
+    ? base
+    : ['ร้านไหนเหมาะที่สุดในย่าน'+currentArea+'?', ...base];
+  document.getElementById('qChips').innerHTML =
+    chips.map(s=>'<span class="qchip">'+s+'</span>').join('');
+  document.querySelectorAll('.qchip').forEach(c=>
+    c.addEventListener('click',()=>{ askInput.value = c.textContent; ask(); }));
+}
+
+/* ---------- Area filter buttons ---------- */
+function areaCount(a){ return (a===ALL_AREAS) ? restaurantsData.length : restaurantsData.filter(r=>r.area===a).length; }
+function renderAreaButtons(){
+  const areas = [ALL_AREAS, ...AREA_LIST];
+  document.getElementById('areaFilterBtns').innerHTML = areas.map(a=>{
+    const label = (a===ALL_AREAS ? 'ทุกย่าน' : a)+' ('+areaCount(a)+')';
+    return '<button class="afbtn'+(a===currentArea?' active':'')+'" data-area="'+a+'">'+label+'</button>';
+  }).join('');
+  document.querySelectorAll('.afbtn').forEach(b=>
+    b.addEventListener('click',()=>{
+      currentArea = b.dataset.area;
+      renderAreaButtons();   // refresh active state
+      renderAll();           // re-render every filtered section
+    }));
+}
+
+/* ---------- Master re-render ---------- */
+function renderAll(){
+  const d = getFilteredData();
+  renderHero(d);
+  renderSummary(d);
+  renderTop3(d);
+  renderTop10(d);
+  renderComparison(d);
+  renderQuestionChips();
+  updateHeadings();
+}
+
+/* ---------- Dataset Ask Box (LIVE — n8n via GET) ---------- */
+/* Module-scope refs so question chips can trigger ask() after filtering. */
+const askBtnEl = document.getElementById('askBtn');
+const askInput = document.getElementById('askInput');
+const askOut = document.getElementById('askAnswer');
+const askConnected = N8N_ASK_WEBHOOK_URL && N8N_ASK_WEBHOOK_URL.trim() !== '';
+let ask;  /* assigned inside the askbox IIFE; used by question chips */
+
+(function askbox(){
+  const btn = askBtnEl, input = askInput, out = askOut, connected = askConnected;
+
+  function renderSuccess(d){
+    const mc = (d.matched_restaurants||[]).map(m=>{
+      const name = (typeof m==='string') ? m : (m.restaurant_name||m.name||JSON.stringify(m));
+      const extra = (typeof m==='object') ? ((m.area?' · '+m.area:'')+(m.total_score!=null?' · '+m.total_score+'/100':'')) : '';
+      return '<div class="minicard"><b>'+name+'</b>'+extra+'</div>';
+    }).join('');
+    out.innerHTML =
+      '<div class="tool"><span class="pill green">Answer · from dataset</span>'
+      +'<p style="font-size:15px;color:var(--navy);">'+(d.answer||'')+'</p>'
+      +(mc?'<div class="minicards">'+mc+'</div>':'')
+      +'<p class="ans-meta">source: '+(d.source||'-')+' · processed_by: '+(d.processed_by||'-')+' · updated_at: '+(d.updated_at||'-')+'</p></div>';
+  }
+
+  ask = async function(){
+    const q = input.value.trim();
+    if(!q){ input.focus(); return; }
+    if(!connected){
+      out.innerHTML = '<div class="err">Webhook URL is empty.</div>';
+      return;
+    }
+    btn.disabled = true; btn.textContent = 'กำลังถาม…';
+    out.innerHTML = '<p class="ans-meta">กำลังค้นหาคำตอบจากข้อมูลร้าน…</p>';
+    try{
+      /* GET request — question passed as query param (no JSON body) */
+      const res = await fetch(`${N8N_ASK_WEBHOOK_URL}?question=${encodeURIComponent(q)}`);
+      if(!res.ok) throw new Error('HTTP '+res.status+' '+res.statusText);
+      const d = await res.json();
+      if(d && d.status==='success'){ renderSuccess(d); }
+      else { out.innerHTML = '<div class="err">ตอบกลับไม่สำเร็จ: '+(d&&d.message?d.message:'unexpected response')+'</div>'; }
+    }catch(err){
+      out.innerHTML = '<div class="err">เกิดข้อผิดพลาดในการเชื่อมต่อ n8n: '+err.message+'</div>';
+    }finally{
+      btn.disabled = false; btn.textContent = '🔍 ถามเลย';
+    }
+  }
+  btn.addEventListener('click', ()=>ask());
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') ask(); });
+})();
+
+/* =========================================================
+   ALL RESTAURANT DATASET — fully self-contained.
+   Uses restaurantsData read-only; its own filter state.
+   Does NOT touch currentArea / getFilteredData / renderAll.
+   ========================================================= */
+(function dataset(){
+  const $ = id => document.getElementById(id);
+  const uniq = key => [...new Set(restaurantsData.map(r=>r[key]).filter(Boolean))];
+
+  function fillSelect(id, values, allLabel){
+    $(id).innerHTML = '<option value="">'+allLabel+'</option>'
+      + values.map(v=>'<option value="'+String(v).replace(/"/g,'&quot;')+'">'+v+'</option>').join('');
+  }
+
+  /* Normalize the raw price_range into a readable bucket — used ONLY for the
+     filter dropdown. restaurantsData.price_range is never modified. */
+  function priceBucket(pr){
+    const s = String(pr||'');
+    if(s.trim()==='' || s.indexOf('Need verification')>=0) return 'verify';
+    if(/\$\$\$\$/.test(s) || s.indexOf('>1,000')>=0 || s.indexOf('1,000+')>=0
+       || s.indexOf('1,500')>=0 || s.indexOf('2,600')>=0) return 'gt1000';
+    if(/\$\$\$/.test(s) || s.indexOf('501–1,000')>=0 || s.indexOf('501-1,000')>=0
+       || s.indexOf('251–1,000')>=0) return '501-1000';
+    if(/\$\$/.test(s) || s.indexOf('251–500')>=0 || s.indexOf('200–500')>=0) return '251-500';
+    if(/\$/.test(s) || s.indexOf('101–250')>=0) return 'le250';
+    return 'verify';
+  }
+  const PRICE_BUCKETS = [
+    ['le250','ไม่เกิน ฿250/คน'],
+    ['251-500','฿251–500/คน'],
+    ['501-1000','฿501–1,000/คน'],
+    ['gt1000','มากกว่า ฿1,000/คน'],
+    ['verify','ต้องยืนยันราคา']
+  ];
+
+  /* Normalize food_type into a friendly category — filter/display only.
+     Priority: Cafe/Brunch and Michelin win over more generic tags. */
+  function foodCategory(ft){
+    const s = String(ft||'').toLowerCase();
+    if(!s.trim()) return 'อื่น ๆ';
+    if(s.indexOf('cafe')>=0 || s.indexOf('brunch')>=0) return 'คาเฟ่ / บรันช์';
+    if(s.indexOf('michelin')>=0 || s.indexOf('fine dining')>=0) return 'Fine Dining / Michelin';
+    if(s.indexOf('buffet')>=0) return 'บุฟเฟต์';
+    if(s.indexOf('italian')>=0) return 'อาหารอิตาเลียน';
+    if(s.indexOf('mediterranean')>=0) return 'อาหารเมดิเตอร์เรเนียน';
+    if(s.indexOf('chinese')>=0) return 'อาหารจีน';
+    if(s.indexOf('japanese')>=0) return 'อาหารญี่ปุ่น / ฟิวชันญี่ปุ่น';
+    if(s.indexOf('european')>=0||s.indexOf('western')>=0||s.indexOf('french')>=0
+       ||s.indexOf('bistro')>=0||s.indexOf('tapas')>=0) return 'อาหารยุโรป / ตะวันตก';
+    if(s.indexOf('asian fusion')>=0||s.indexOf('fusion')>=0) return 'อาหารเอเชียนฟิวชัน';
+    if(s.indexOf('thai')>=0||s.indexOf('isaan')>=0||s.indexOf('northern')>=0
+       ||s.indexOf('street food')>=0||s.indexOf('rooftop')>=0) return 'อาหารไทย';
+    return 'อื่น ๆ';
+  }
+  const FOOD_ORDER = ['อาหารไทย','อาหารอิตาเลียน','คาเฟ่ / บรันช์','อาหารญี่ปุ่น / ฟิวชันญี่ปุ่น',
+    'อาหารยุโรป / ตะวันตก','อาหารเมดิเตอร์เรเนียน','อาหารจีน','อาหารเอเชียนฟิวชัน','บุฟเฟต์',
+    'Fine Dining / Michelin','อื่น ๆ'];
+
+  /* Normalize group_fit into friendly wording — filter/display only. */
+  function groupLabel(g){
+    const s = String(g||'');
+    if(s.indexOf('รองรับกลุ่มได้ดี')>=0) return 'เหมาะกับทีม 8–12 คน';
+    if(s.indexOf('น่าจะรองรับ')>=0) return 'น่าจะรองรับทีมได้';
+    return 'ควรโทรยืนยันก่อนจอง';   /* ต้องยืนยัน / Need verification / unknown */
+  }
+  const GROUP_ORDER = ['เหมาะกับทีม 8–12 คน','น่าจะรองรับทีมได้','ควรโทรยืนยันก่อนจอง'];
+
+  function fillFixed(id, order, mapFn){
+    const present = order.filter(c=>restaurantsData.some(r=>mapFn(r)===c));
+    $(id).innerHTML = '<option value="">ทั้งหมด</option>'
+      + present.map(c=>'<option value="'+c.replace(/"/g,'&quot;')+'">'+c+'</option>').join('');
+  }
+
+  /* populate options (price/food/group normalized; area from data) — re-runnable */
+  function populate(){
+    fillSelect('dsArea', AREA_LIST.filter(a=>restaurantsData.some(r=>r.area===a)), 'ทั้งหมด');
+    fillFixed('dsFood', FOOD_ORDER, r=>foodCategory(r.food_type));
+    $('dsPrice').innerHTML = '<option value="">ทั้งหมด</option>'
+      + PRICE_BUCKETS.map(b=>'<option value="'+b[0]+'">'+b[1]+'</option>').join('');
+    fillFixed('dsGroup', GROUP_ORDER, r=>groupLabel(r.group_fit));
+  }
+
+  function render(){
+    const fa=$('dsArea').value, ff=$('dsFood').value, fp=$('dsPrice').value,
+          fg=$('dsGroup').value,
+          q=$('dsSearch').value.trim().toLowerCase();
+    const rows = restaurantsData.filter(r=>{
+      if(fa && r.area!==fa) return false;
+      if(ff && foodCategory(r.food_type)!==ff) return false;
+      if(fp && priceBucket(r.price_range)!==fp) return false;
+      if(fg && groupLabel(r.group_fit)!==fg) return false;
+      if(q && String(r.restaurant_name||'').toLowerCase().indexOf(q)<0) return false;
+      return true;
+    }).slice().sort((a,b)=>b.total_score-a.total_score);  /* copy — never mutate source */
+
+    $('dsCount').innerHTML = 'กำลังแสดง <b>'+rows.length+'</b> จาก <b>'+restaurantsData.length+'</b> ร้าน';
+    const body = $('dsBody');
+    if(!rows.length){
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:26px;">ไม่พบร้านที่ตรงกับตัวกรอง ลองล้างตัวกรองหรือเลือกเงื่อนไขใหม่</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(r=>{
+      const pros=(r.pros||[]).map(p=>'<li>'+p+'</li>').join('');
+      const cons=(r.cons||[]).map(c=>'<li>'+c+'</li>').join('');
+      const main='<tr>'
+        +'<td class="rname"><b>'+r.restaurant_name+'</b></td>'
+        +'<td><span class="areatag">'+r.area+'</span></td>'
+        +'<td>'+val(r.food_type)+'</td>'
+        +'<td>⭐ '+r.rating+'</td>'
+        +'<td>💬 '+fmt(r.review_count)+'</td>'
+        +'<td><span class="fbadge" title="'+String(r.price_range||'').replace(/"/g,'&quot;')+'">฿ '+priceTH(r.price_range)+'</span></td>'
+        +'<td><span class="fbadge" title="'+String(r.group_fit||'').replace(/"/g,'&quot;')+'">👥 '+groupLabel(r.group_fit)+'</span></td>'
+        +'<td><span class="totalpill">'+r.total_score+'</span></td>'
+        +'<td><div class="dsactions">'
+          +linkBtn(r.google_maps_url,'🗺️ ดูแผนที่')
+          +linkBtn(r.second_source_url,'💬 ดูรีวิว')
+          +'<button class="btn dsexp" data-r="'+r.rank+'">รายละเอียด ▾</button>'
+        +'</div></td>'
+      +'</tr>';
+      const detail='<tr class="dsdetail" id="ds-'+r.rank+'"><td colspan="9"><div class="dgrid">'
+        +'<div><div class="dk">📍 Address</div><div class="dv">'+val(r.address)+'</div></div>'
+        +'<div><div class="dk">🚆 Travel Note</div><div class="dv">'+val(r.travel_note)+'</div></div>'
+        +'<div><div class="dk">🕒 Opening Hours</div><div class="dv">'+val(r.opening_hours)+'</div></div>'
+        +'<div><div class="dk">📝 Reason</div><div class="dv">'+val(r.reason)+'</div></div>'
+        +'<div><div class="dk">✅ Pros</div><ul>'+pros+'</ul></div>'
+        +'<div><div class="dk">⚠️ Cons</div><ul class="cons">'+cons+'</ul></div>'
+        +'<div><div class="dk">📌 Final Note</div><div class="dv">'+val(r.final_note)+'</div></div>'
+        +'<div><div class="dk">🔗 Sources</div><div class="dv">'+linkBtn(r.google_maps_url,'Google Maps')+' '+linkBtn(r.second_source_url,'Review')+'</div></div>'
+      +'</div></td></tr>';
+      return main+detail;
+    }).join('');
+    body.querySelectorAll('.dsexp').forEach(btn=>btn.addEventListener('click',()=>{
+      const row=document.getElementById('ds-'+btn.dataset.r);
+      const open=row.classList.toggle('open');
+      btn.textContent = open ? 'ซ่อนรายละเอียด ▴' : 'รายละเอียด ▾';
+    }));
+  }
+
+  ['dsArea','dsFood','dsPrice','dsGroup'].forEach(id=>$(id).addEventListener('change',render));
+  $('dsSearch').addEventListener('input',render);
+  $('dsReset').addEventListener('click',()=>{
+    ['dsArea','dsFood','dsPrice','dsGroup'].forEach(id=>$(id).value='');
+    $('dsSearch').value=''; render();
+  });
+  refreshDataset = function(){ populate(); render(); };
+  refreshDataset();
+})();
+
+/* ---------- INIT: build area buttons + first render (embedded data) ---------- */
+renderAreaButtons();
+renderAll();
+
+/* =========================================================
+   LIVE DATA — fetch restaurantsData from the n8n report API.
+   Embedded data is rendered first; on success we swap & re-render.
+   On any failure the embedded fallback stays in place.
+   ========================================================= */
+const REPORT_DATA_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/restaurant-report-data";
+
+function setDataMode(mode, updatedAt){
+  const el = document.getElementById('dataModeBadge');
+  const panel = document.getElementById('dataStatus');
+  const live = (mode === 'live');
+  if(el){
+    el.className = live ? 'dmbadge live' : 'dmbadge';
+    el.textContent = live
+      ? ('● Data mode: Live from n8n' + (updatedAt ? ' · updated_at: ' + updatedAt : ''))
+      : 'Data mode: Embedded fallback';
+  }
+  if(panel){
+    if(live){
+      panel.className = 'datastatus live';
+      panel.innerHTML =
+        '<span class="dm-title"><span class="dm-dot"></span>Data mode: Live from n8n</span>'
+        + '<span class="dm-seg">Source: <b>Google Sheets CSV → n8n Webhook → HTML</b></span>'
+        + '<span class="dm-seg">Last updated: <b>' + (updatedAt || '-') + '</b></span>';
+    }else{
+      panel.className = 'datastatus fallback';
+      panel.innerHTML =
+        '<span class="dm-title"><span class="dm-dot"></span>Data mode: Embedded fallback</span>'
+        + '<span class="dm-seg">Live Data API verified via n8n Production URL, but browser live loading is blocked by CORS in the current n8n environment.</span>'
+        + '<span class="dm-seg">Source pipeline tested: <b>Google Sheets CSV → n8n Production Webhook → JSON response</b></span>';
+    }
+  }
+}
+
+/* swap dataset and re-render every data-driven section */
+function applyLiveData(arr){
+  restaurantsData = arr;
+  renderAreaButtons();
+  renderAll();                 // hero, summary, top3, top10, comparison, chips, headings
+  if(typeof refreshDataset === 'function') refreshDataset();  // dataset section dropdowns + table
+}
+
+setDataMode('embedded');
+(async function loadReportData(){
+  if(!REPORT_DATA_WEBHOOK_URL || !REPORT_DATA_WEBHOOK_URL.trim()) return;
+  console.log("Fetching live data from:", REPORT_DATA_WEBHOOK_URL);
+  try{
+    const res = await fetch(REPORT_DATA_WEBHOOK_URL);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    console.log("Live data response:", data);
+    if(data && data.status === 'success' && Array.isArray(data.restaurantsData) && data.restaurantsData.length){
+      restaurantsData = data.restaurantsData;   // swap embedded -> live
+      applyLiveData(restaurantsData);            // re-render every data-driven section
+      setDataMode('live', data.updated_at);      // green badge + status panel
+      console.log("Live data loaded from n8n");
+    }else{
+      console.warn("Live data not in expected shape — keeping embedded fallback.", data);
+      setDataMode('embedded');
+    }
+  }catch(err){
+    /* network/parse error → keep embedded fallback */
+    console.warn("Live data fetch failed — using embedded fallback:", err.message);
+    setDataMode('embedded');
+  }
+})();
+</script>
+</body>
+</html>
