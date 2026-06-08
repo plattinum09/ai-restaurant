@@ -2217,20 +2217,20 @@ const REPORT_DATA_WEBHOOK_URL = "https://n8n-external.exservice.io/webhook/resta
 function setDataMode(mode, updatedAt){
   const el = document.getElementById('dataModeBadge');
   const panel = document.getElementById('dataStatus');
-  const live = (mode === 'live');
+  const connected = (mode === 'connected');   /* n8n reachable, but final = embedded */
   if(el){
-    el.className = live ? 'dmbadge live' : 'dmbadge';
-    el.textContent = live
-      ? ('● Data mode: Live from n8n' + (updatedAt ? ' · updated_at: ' + updatedAt : ''))
+    el.className = connected ? 'dmbadge live' : 'dmbadge';
+    el.textContent = connected
+      ? ('● n8n Connected' + (updatedAt ? ' · last sync ' + updatedAt : ''))
       : 'Data source: Embedded report dataset';
   }
   if(panel){
-    if(live){
+    if(connected){
       panel.className = 'datastatus live';
       panel.innerHTML =
-        '<span class="dm-title"><span class="dm-dot"></span>Data mode: Live from n8n</span>'
-        + '<span class="dm-seg">Source: <b>Google Sheets CSV → n8n Webhook → HTML</b></span>'
-        + '<span class="dm-seg">Last updated: <b>' + (updatedAt || '-') + '</b></span>';
+        '<span class="dm-title"><span class="dm-dot"></span>n8n Live Data API connected</span>'
+        + '<span class="dm-seg">Final results from <b>embedded report dataset</b></span>'
+        + '<span class="dm-seg">Last sync: <b>' + (updatedAt || '-') + '</b></span>';
     }else{
       panel.className = 'datastatus fallback';
       panel.innerHTML =
@@ -2291,17 +2291,24 @@ function liveMissing(v){
 /* normalize a restaurant name into a match key: trim, lowercase, collapse spaces */
 function nameKey(name){ return String(name || '').trim().toLowerCase().replace(/\s+/g, ' '); }
 
+/* Decision-critical fields ALWAYS come from live (Sheet) — never overridden by
+   embedded — so ranking, scores, Top Pick and group_fit stay one source. */
+const LIVE_ONLY_FIELDS = ['total_score','rank','restaurant_name','area','food_type','price_range',
+  'group_fit','rating','review_count','rating_review_score','group_score','price_score',
+  'travel_score','data_completeness_score','uniqueness_score','google_maps_url','second_source_url'];
+
 function mergeLiveWithEmbedded(liveRows){
   const idx = {};
   EMBEDDED_DATA.forEach(e => { idx[nameKey(e.restaurant_name)] = e; });
   return liveRows.map(live => {
     const emb = idx[nameKey(live.restaurant_name)];
     if(!emb) return live;                              // no embedded match → live as-is
-    const merged = Object.assign({}, emb, live);       // live wins (score/rank/urls/breakdown)
-    /* but where the live value is missing, fall back to embedded Clean Data
-       (address, opening_hours, travel_note, notes, reason, pros, cons,
-        final_note, group_fit, price_range/area/food_type, …) */
+    const merged = Object.assign({}, emb, live);       // live wins
+    /* fall back to embedded ONLY for non-critical detail fields that live lacks
+       (address, opening_hours, travel_note, notes, reason, pros, cons, final_note).
+       Score / ranking / group_fit / urls stay strictly from live (Sheet). */
     Object.keys(live).forEach(k => {
+      if(LIVE_ONLY_FIELDS.indexOf(k) >= 0) return;     // never override critical fields
       if(liveMissing(live[k]) && !liveMissing(emb[k])) merged[k] = emb[k];
     });
     return merged;
@@ -2344,23 +2351,20 @@ setDataMode('embedded');
       });
     }
 
-    if(data && data.status === 'success' && items.length){
-      const live = items.map(normalizeRestaurant);
-      /* merge live (score/rank/urls) onto embedded Clean Data (address, hours,
-         travel_note, reason, pros/cons, …) so detail fields don't disappear */
-      const merged = mergeLiveWithEmbedded(live)
-        .sort((a, b) => b.total_score - a.total_score);   // keep Top order by score
-      restaurantsData = merged;                // live scores + embedded details
-      applyLiveData(restaurantsData);          // re-render every data-driven section
-      setDataMode('live', data.updated_at);    // green badge + status panel
-      console.log("Live data loaded from n8n:", merged.length, "restaurants (merged with embedded Clean Data)");
+    if(data && data.status === 'success'){
+      /* n8n is reachable → keep it ONLY as connection status / evidence.
+         The FINAL report results (Top Pick, Decision Summary, Top 3, Top 10,
+         Comparison) stay on the authoritative EMBEDDED report dataset and are
+         NOT overwritten by live scores/ranking. restaurantsData is untouched. */
+      setDataMode('connected', data.updated_at);
+      console.log("n8n Live Data API connected (evidence only). Final results kept from embedded report dataset.");
     }else{
-      console.warn("Live data not in expected shape — keeping embedded data.", raw);
+      console.warn("Live data not in expected shape — using embedded report dataset.", raw);
       setDataMode('embedded');
     }
   }catch(err){
-    /* network/parse error → keep embedded data */
-    console.warn("Live data fetch failed — using embedded data:", err.message);
+    /* network/parse error → embedded report dataset (final) */
+    console.warn("Live data fetch failed — using embedded report dataset:", err.message);
     setDataMode('embedded');
   }
 })();
